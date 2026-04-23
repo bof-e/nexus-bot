@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const ReminderRepository = require('../../database/ReminderRepository');
 const embedBuilder = require('../../utils/embedBuilder');
 const logger = require('../../utils/logger');
 
@@ -28,15 +29,14 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    const db = require('../../database/db').getDB();
     const sub = interaction.options.getSubcommand();
-    const reminder = db.prepare('SELECT * FROM reminders WHERE id = 1').get();
+    const reminder = await ReminderRepository.get() || { enabled: false, message: 'Rappel : préparez-vous pour une session !' };
 
     if (sub === 'on') {
       if (reminder.enabled) {
         return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà activés.')], ephemeral: true });
       }
-      db.prepare('UPDATE reminders SET enabled = 1, expires_at = ? WHERE id = 1').run(Date.now() + 24 * 3600000);
+      await ReminderRepository.update({ enabled: true, expiresAt: Date.now() + 24 * 3600000 });
       logger.info(`[Rappel] Activé par ${interaction.user.tag}`);
       return interaction.reply({ embeds: [embedBuilder.success('Rappels activés', `Message : "${reminder.message}"\nExpire dans 24h.`)] });
     }
@@ -45,21 +45,21 @@ module.exports = {
       if (!reminder.enabled) {
         return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà désactivés.')], ephemeral: true });
       }
-      db.prepare('UPDATE reminders SET enabled = 0, expires_at = NULL WHERE id = 1').run();
+      await ReminderRepository.update({ enabled: false, expiresAt: null });
       logger.info(`[Rappel] Désactivé par ${interaction.user.tag}`);
       return interaction.reply({ embeds: [embedBuilder.success('Rappels désactivés', 'Les rappels automatiques sont maintenant off.')] });
     }
 
     if (sub === 'set') {
       const newMsg = interaction.options.getString('message');
-      db.prepare('UPDATE reminders SET message = ? WHERE id = 1').run(newMsg);
+      await ReminderRepository.update({ message: newMsg });
       logger.info(`[Rappel] Message mis à jour par ${interaction.user.tag}: "${newMsg}"`);
       return interaction.reply({ embeds: [embedBuilder.success('Message mis à jour', `Nouveau message de rappel :\n"${newMsg}"`)] });
     }
 
     if (sub === 'status') {
-      const updated = db.prepare('SELECT * FROM reminders WHERE id = 1').get();
-      const status = updated.enabled ? `✅ Activé — expire <t:${Math.floor(updated.expires_at / 1000)}:R>` : '❌ Désactivé';
+      const updated = await ReminderRepository.get() || reminder;
+      const status = updated.enabled ? `✅ Activé — expire <t:${Math.floor(updated.expiresAt / 1000)}:R>` : '❌ Désactivé';
       return interaction.reply({
         embeds: [embedBuilder.base(embedBuilder.COLORS.info)
           .setTitle('📋 État des rappels')
