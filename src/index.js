@@ -4,56 +4,53 @@ const logger = require('./utils/logger');
 
 logger.info('🚀 Démarrage de Nexus Bot v2...');
 
-// Connexion DB
-const { connectDB } = require('./database/db');
-connectDB();
+// Fonction de démarrage asynchrone
+async function bootstrap() {
+  // Connexion DB
+  const { connectDB } = require('./database/db');
+  await connectDB();
 
-// Client Discord
-const { Client, GatewayIntentBits, Partials } = require('discord.js');
+  // Client Discord
+  const { Client, GatewayIntentBits, Partials } = require('discord.js');
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildPresences,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMessageReactions,
-  ],
-  partials: [
-    Partials.User,
-    Partials.Message,
-    Partials.Channel,
-    Partials.Reaction,
-  ],
-});
+  const client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildPresences,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessageReactions,
+    ],
+    partials: [
+      Partials.User,
+      Partials.Message,
+      Partials.Channel,
+      Partials.Reaction,
+    ],
+  });
 
-// Chargement des commandes et events
-const CommandLoader = require('./loaders/CommandLoader');
-const EventLoader = require('./loaders/EventLoader');
+  // Chargement des commandes et events
+  const CommandLoader = require('./loaders/CommandLoader');
+  const EventLoader = require('./loaders/EventLoader');
 
-CommandLoader.load(client);
-EventLoader.load(client);
+  CommandLoader.load(client);
+  EventLoader.load(client);
 
-// Serveur Express (keep-alive + dashboard)
-const { startServer } = require('./server');
-startServer(client);
+  // Serveur Express (keep-alive + dashboard)
+  const { startServer } = require('./server');
+  startServer(client);
 
-// Nettoyage cooldowns toutes les heures
-const CooldownManager = require('./services/CooldownManager');
-setInterval(() => CooldownManager.cleanup(), 3600 * 1000);
+  // Nettoyage cooldowns toutes les heures
+  const CooldownManager = require('./services/CooldownManager');
+  setInterval(() => CooldownManager.cleanup(), 3600 * 1000);
 
-// Gestion des erreurs non catchées
-process.on('unhandledRejection', (err) => {
-  logger.error(`[Process] Rejection non gérée : ${err?.stack || err}`);
-});
-process.on('uncaughtException', (err) => {
-  logger.error(`[Process] Exception non gérée : ${err?.stack || err}`);
-  process.exit(1);
-});
+  // Connexion
+  client.login(config.token).catch((err) => {
+    logger.error(`[Login] Impossible de se connecter : ${err.message}`);
+    process.exit(1);
+  });
+}
 
-// Connexion
-client.login(config.token).catch((err) => {
-  logger.error(`[Login] Impossible de se connecter : ${err.message}`);
-  process.exit(1);
-});
+// Lancement
+bootstrap();
