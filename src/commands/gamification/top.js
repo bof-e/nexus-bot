@@ -18,7 +18,7 @@ module.exports = {
     await interaction.deferReply();
 
     const limit = Math.min(interaction.options.getInteger('limite') ?? 10, 15);
-    const entries = UserRepository.topByXP(limit);
+    const entries = await UserRepository.topByXP(limit);
 
     const embed = embedBuilder.leaderboard(entries, interaction.guild.name);
     await interaction.editReply({ embeds: [embed] });

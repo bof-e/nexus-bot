@@ -19,9 +19,9 @@ module.exports = {
 
     await interaction.deferReply();
 
-    const dbUser = UserRepository.findOrCreate(target.id, target.username);
-    const gameStats = GameRepository.getUserGameStats(target.id);
-    const badges = BadgeRepository.getUserBadges(target.id);
+    const dbUser = await UserRepository.findOrCreate(target.id, target.username);
+    const gameStats = await GameRepository.getUserGameStats(target.id);
+    const badges = await BadgeRepository.getUserBadges(target.id);
 
     const embed = embedBuilder.profile(target, dbUser, gameStats, badges);
     await interaction.editReply({ embeds: [embed] });

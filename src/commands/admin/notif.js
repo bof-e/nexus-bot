@@ -15,15 +15,15 @@ module.exports = {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'on') {
-      UserRepository.setSetting('notifications_enabled', '1');
+      await UserRepository.setSetting('notifications_enabled', '1');
       return interaction.reply({ embeds: [embedBuilder.success('Notifications ON', '🔔 Les messages de présence sont maintenant actifs.')] });
     }
     if (sub === 'off') {
-      UserRepository.setSetting('notifications_enabled', '0');
+      await UserRepository.setSetting('notifications_enabled', '0');
       return interaction.reply({ embeds: [embedBuilder.success('Notifications OFF', '🔕 Les messages de présence sont désactivés.')] });
     }
     if (sub === 'status') {
-      const enabled = UserRepository.getSetting('notifications_enabled') !== '0';
+      const enabled = (await UserRepository.getSetting('notifications_enabled')) !== '0';
       return interaction.reply({
         embeds: [embedBuilder.base(embedBuilder.COLORS.info)
           .setTitle('🔔 Notifications de présence')

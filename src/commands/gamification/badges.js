@@ -14,7 +14,7 @@ module.exports = {
 
   async execute(interaction) {
     const target = interaction.options.getUser('utilisateur') ?? interaction.user;
-    const earned = BadgeRepository.getUserBadges(target.id);
+    const earned = await BadgeRepository.getUserBadges(target.id);
     const earnedKeys = new Set(earned.map(b => b.key));
     const catalog = BadgeRepository.getCatalog();
 

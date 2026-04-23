@@ -4,9 +4,9 @@ const logger = require('./utils/logger');
 
 logger.info('🚀 Démarrage de Nexus Bot v2...');
 
-// Migrations DB
-const { runMigrations } = require('./database/migrations');
-runMigrations();
+// Connexion DB
+const { connectDB } = require('./database/db');
+connectDB();
 
 // Client Discord
 const { Client, GatewayIntentBits, Partials } = require('discord.js');

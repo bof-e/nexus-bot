@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const required = ['TOKEN', 'CLIENT_ID'];
+const required = ['TOKEN', 'CLIENT_ID', 'MONGODB_URI'];
 const missing = required.filter(k => !process.env[k]);
 if (missing.length) {
   console.error(`[Config] Variables d'environnement manquantes : ${missing.join(', ')}`);
@@ -11,6 +11,7 @@ module.exports = {
   token: process.env.TOKEN,
   clientId: process.env.CLIENT_ID,
   guildId: process.env.GUILD_ID || null,
+  mongoUri: process.env.MONGODB_URI,
   port: parseInt(process.env.PORT || '3000', 10),
   isDev: process.env.NODE_ENV !== 'production',
 

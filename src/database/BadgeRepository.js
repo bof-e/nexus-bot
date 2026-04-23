@@ -1,4 +1,4 @@
-const { getDB } = require('./db');
+const Badge = require('./models/Badge');
 
 const BADGE_CATALOG = {
   // Temps de jeu
@@ -21,25 +21,31 @@ const BADGE_CATALOG = {
 };
 
 class BadgeRepository {
-  get db() { return getDB(); }
-
-  getUserBadges(discordId) {
-    const rows = this.db.prepare('SELECT badge_key, earned_at FROM badges WHERE discord_id = ?').all(discordId);
-    return rows.map(r => ({
-      ...BADGE_CATALOG[r.badge_key],
-      earnedAt: r.earned_at,
-    })).filter(Boolean);
+  async getUserBadges(discordId) {
+    const badges = await Badge.find({ discordId });
+    return badges.map(r => ({
+      ...BADGE_CATALOG[r.badgeKey],
+      earnedAt: r.earnedAt,
+    })).filter(b => b.key); // filter out if key not found in catalog
   }
 
-  hasBadge(discordId, badgeKey) {
-    return !!this.db.prepare('SELECT 1 FROM badges WHERE discord_id = ? AND badge_key = ?').get(discordId, badgeKey);
+  async hasBadge(discordId, badgeKey) {
+    const badge = await Badge.findOne({ discordId, badgeKey });
+    return !!badge;
   }
 
   /** Retourne true si le badge a été nouvellement attribué. */
-  award(discordId, badgeKey) {
-    if (this.hasBadge(discordId, badgeKey)) return false;
-    this.db.prepare('INSERT OR IGNORE INTO badges (discord_id, badge_key) VALUES (?, ?)').run(discordId, badgeKey);
-    return true;
+  async award(discordId, badgeKey) {
+    const alreadyHas = await this.hasBadge(discordId, badgeKey);
+    if (alreadyHas) return false;
+
+    try {
+      await Badge.create({ discordId, badgeKey });
+      return true;
+    } catch (err) {
+      // In case of race condition (unique index)
+      return false;
+    }
   }
 
   getCatalog() { return BADGE_CATALOG; }

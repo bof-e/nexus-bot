@@ -18,8 +18,8 @@ module.exports = {
     const target = interaction.options.getUser('utilisateur') ?? interaction.user;
     await interaction.deferReply();
 
-    const gameStats = GameRepository.getUserGameStats(target.id);
-    const dbUser = UserRepository.findOrCreate(target.id, target.username);
+    const gameStats = await GameRepository.getUserGameStats(target.id);
+    const dbUser = await UserRepository.findOrCreate(target.id, target.username);
     const entries = Object.entries(gameStats).sort((a, b) => b[1] - a[1]);
 
     if (!entries.length) {

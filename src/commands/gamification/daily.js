@@ -9,7 +9,7 @@ module.exports = {
     .setDescription('Réclame ton bonus XP quotidien et maintiens ton streak !'),
 
   async execute(interaction) {
-    const result = XPService.claimDaily(interaction.user.id, interaction.user.username);
+    const result = await XPService.claimDaily(interaction.user.id, interaction.user.username);
 
     if (!result.success) {
       const hours = Math.floor(result.remaining / 3600000);

@@ -1,79 +1,86 @@
-const { getDB } = require('./db');
+const GameSession = require('./models/GameSession');
+const GameStat = require('./models/GameStat');
+const RSSUpdate = require('./models/RSSUpdate');
 
 class GameRepository {
-  get db() { return getDB(); }
-
-  startSession(discordId, gameName) {
-    this.db.prepare(
-      'INSERT INTO game_sessions (discord_id, game_name, session_start) VALUES (?, ?, ?)'
-    ).run(discordId, gameName, Date.now());
+  async startSession(discordId, gameName) {
+    await GameSession.create({
+      discordId,
+      gameName,
+      sessionStart: Date.now()
+    });
 
     // Mise à jour game_stats
-    const existing = this.db.prepare('SELECT * FROM game_stats WHERE game_name = ?').get(gameName);
-    if (existing) {
-      this.db.prepare(
-        'UPDATE game_stats SET session_count = session_count + 1, last_played = ? WHERE game_name = ?'
-      ).run(Date.now(), gameName);
-    } else {
-      this.db.prepare(
-        'INSERT INTO game_stats (game_name, session_count, last_played) VALUES (?, 1, ?)'
-      ).run(gameName, Date.now());
-    }
+    await GameStat.findOneAndUpdate(
+      { gameName },
+      { $inc: { sessionCount: 1 }, lastPlayed: Date.now() },
+      { upsert: true }
+    );
   }
 
-  endSession(discordId, gameName) {
-    const session = this.db.prepare(
-      `SELECT * FROM game_sessions 
-       WHERE discord_id = ? AND game_name = ? AND session_start IS NOT NULL
-       ORDER BY id DESC LIMIT 1`
-    ).get(discordId, gameName);
+  async endSession(discordId, gameName) {
+    const session = await GameSession.findOne({
+      discordId,
+      gameName,
+      sessionStart: { $ne: null }
+    }).sort({ _id: -1 });
 
     if (!session) return 0;
 
-    const duration = Math.floor((Date.now() - session.session_start) / 1000);
-    this.db.prepare(
-      'UPDATE game_sessions SET duration = ?, session_start = NULL, played_at = ? WHERE id = ?'
-    ).run(duration, Date.now(), session.id);
+    const duration = Math.floor((Date.now() - session.sessionStart) / 1000);
+    session.duration = duration;
+    session.sessionStart = null;
+    session.playedAt = Date.now();
+    await session.save();
 
     return duration;
   }
 
   /** Temps total par jeu pour un utilisateur. */
-  getUserGameStats(discordId) {
-    const rows = this.db.prepare(
-      `SELECT game_name, SUM(duration) as total_seconds
-       FROM game_sessions WHERE discord_id = ? AND session_start IS NULL
-       GROUP BY game_name ORDER BY total_seconds DESC`
-    ).all(discordId);
+  async getUserGameStats(discordId) {
+    const results = await GameSession.aggregate([
+      { $match: { discordId, sessionStart: null } },
+      { $group: { _id: "$gameName", total_seconds: { $sum: "$duration" } } },
+      { $sort: { total_seconds: -1 } }
+    ]);
 
-    return rows.reduce((acc, r) => {
-      acc[r.game_name] = r.total_seconds;
+    return results.reduce((acc, r) => {
+      acc[r._id] = r.total_seconds;
       return acc;
     }, {});
   }
 
   /** Stats globales pour le récap. */
-  getRecentGameStats(hours) {
+  async getRecentGameStats(hours) {
     const threshold = Date.now() - hours * 3600000;
-    const rows = this.db.prepare(
-      `SELECT game_name, session_count, last_played FROM game_stats
-       WHERE last_played >= ? ORDER BY session_count DESC`
-    ).all(threshold);
+    const stats = await GameStat.find({
+      lastPlayed: { $gte: threshold }
+    }).sort({ sessionCount: -1 });
 
-    return rows.reduce((acc, r) => {
-      acc[r.game_name] = { count: r.session_count, lastPlayed: r.last_played };
+    return stats.reduce((acc, r) => {
+      acc[r.gameName] = { count: r.sessionCount, lastPlayed: r.lastPlayed };
       return acc;
     }, {});
   }
 
-  getRSSLastUpdate(gameName) {
-    return this.db.prepare('SELECT update_time FROM rss_last_update WHERE game_name = ?').get(gameName)?.update_time || 0;
+  async getRSSLastUpdate(gameName) {
+    const update = await RSSUpdate.findOne({ gameName });
+    return update?.updateTime || 0;
   }
 
-  setRSSLastUpdate(gameName, time) {
-    this.db.prepare(
-      'INSERT OR REPLACE INTO rss_last_update (game_name, update_time) VALUES (?, ?)'
-    ).run(gameName, time);
+  async setRSSLastUpdate(gameName, time) {
+    await RSSUpdate.findOneAndUpdate(
+      { gameName },
+      { updateTime: time },
+      { upsert: true }
+    );
+  }
+
+  async cleanOrphanSessions() {
+    return GameSession.updateMany(
+      { sessionStart: { $ne: null } },
+      { sessionStart: null, duration: 0 }
+    );
   }
 }
 

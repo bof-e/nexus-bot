@@ -1,34 +1,30 @@
-const { getDB } = require('./db');
+const Poll = require('./models/Poll');
 
 class PollRepository {
-  get db() { return getDB(); }
-
-  save(messageId, channelId, question, options, endTime) {
-    this.db.prepare(
-      'INSERT OR REPLACE INTO polls (message_id, channel_id, question, options, end_time) VALUES (?, ?, ?, ?, ?)'
-    ).run(messageId, channelId, question, JSON.stringify(options), endTime);
+  async save(messageId, channelId, question, options, endTime) {
+    await Poll.findOneAndUpdate(
+      { messageId },
+      { channelId, question, options, endTime },
+      { upsert: true }
+    );
   }
 
-  find(messageId) {
-    const row = this.db.prepare('SELECT * FROM polls WHERE message_id = ?').get(messageId);
-    if (!row) return null;
-    return { ...row, options: JSON.parse(row.options) };
+  async find(messageId) {
+    return Poll.findOne({ messageId });
   }
 
-  delete(messageId) {
-    this.db.prepare('DELETE FROM polls WHERE message_id = ?').run(messageId);
+  async delete(messageId) {
+    await Poll.deleteOne({ messageId });
   }
 
-  getActive() {
+  async getActive() {
     const now = Date.now();
-    const rows = this.db.prepare('SELECT * FROM polls WHERE end_time > ?').all(now);
-    return rows.map(r => ({ ...r, options: JSON.parse(r.options) }));
+    return Poll.find({ endTime: { $gt: now } });
   }
 
-  getExpired() {
+  async getExpired() {
     const now = Date.now();
-    const rows = this.db.prepare('SELECT * FROM polls WHERE end_time <= ?').all(now);
-    return rows.map(r => ({ ...r, options: JSON.parse(r.options) }));
+    return Poll.find({ endTime: { $lte: now } });
   }
 }
 

@@ -1,53 +1,64 @@
-const { getDB } = require('./db');
+const User = require('./models/User');
+const Setting = require('./models/Setting');
 
 class UserRepository {
-  get db() { return getDB(); }
-
   /** Retourne ou crée un utilisateur. */
-  findOrCreate(discordId, username) {
-    const existing = this.db.prepare('SELECT * FROM users WHERE discord_id = ?').get(discordId);
-    if (existing) {
-      if (existing.username !== username) {
-        this.db.prepare('UPDATE users SET username = ? WHERE discord_id = ?').run(username, discordId);
-        existing.username = username;
+  async findOrCreate(discordId, username) {
+    let user = await User.findOne({ discordId });
+    if (user) {
+      if (user.username !== username) {
+        user.username = username;
+        await user.save();
       }
-      return existing;
+      return user;
     }
-    this.db.prepare(
-      'INSERT INTO users (discord_id, username) VALUES (?, ?)'
-    ).run(discordId, username);
-    return this.db.prepare('SELECT * FROM users WHERE discord_id = ?').get(discordId);
+    user = new User({ discordId, username });
+    await user.save();
+    return user;
   }
 
-  findById(discordId) {
-    return this.db.prepare('SELECT * FROM users WHERE discord_id = ?').get(discordId);
+  async findById(discordId) {
+    return User.findOne({ discordId });
   }
 
-  addXP(discordId, amount) {
-    this.db.prepare('UPDATE users SET xp = xp + ? WHERE discord_id = ?').run(amount, discordId);
-    return this.db.prepare('SELECT xp FROM users WHERE discord_id = ?').get(discordId)?.xp;
+  async addXP(discordId, amount) {
+    const user = await User.findOneAndUpdate(
+      { discordId },
+      { $inc: { xp: amount } },
+      { new: true }
+    );
+    return user?.xp;
   }
 
-  updateDailyStreak(discordId, streak, lastDaily) {
-    this.db.prepare(
-      'UPDATE users SET daily_streak = ?, last_daily = ? WHERE discord_id = ?'
-    ).run(streak, lastDaily, discordId);
+  async updateDailyStreak(discordId, streak, lastDaily) {
+    await User.updateOne(
+      { discordId },
+      { dailyStreak: streak, lastDaily }
+    );
   }
 
-  updateLastMessageXP(discordId, timestamp) {
-    this.db.prepare('UPDATE users SET last_message_xp = ? WHERE discord_id = ?').run(timestamp, discordId);
+  async updateLastMessageXP(discordId, timestamp) {
+    await User.updateOne(
+      { discordId },
+      { lastMessageXP: timestamp }
+    );
   }
 
-  topByXP(limit = 10) {
-    return this.db.prepare('SELECT * FROM users ORDER BY xp DESC LIMIT ?').all(limit);
+  async topByXP(limit = 10) {
+    return User.find().sort({ xp: -1 }).limit(limit);
   }
 
-  getSetting(key) {
-    return this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key)?.value;
+  async getSetting(key) {
+    const setting = await Setting.findOne({ key });
+    return setting?.value;
   }
 
-  setSetting(key, value) {
-    this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, String(value));
+  async setSetting(key, value) {
+    await Setting.findOneAndUpdate(
+      { key },
+      { value: String(value) },
+      { upsert: true }
+    );
   }
 }
 

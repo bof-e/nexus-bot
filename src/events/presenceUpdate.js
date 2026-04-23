@@ -1,9 +1,7 @@
 const UserRepository = require('../database/UserRepository');
 const GameRepository = require('../database/GameRepository');
 const XPService = require('../services/XPService');
-const BadgeRepository = require('../database/BadgeRepository');
 const randomResponses = require('../utils/randomResponses');
-const embedBuilder = require('../utils/embedBuilder');
 const config = require('../../config');
 const logger = require('../utils/logger');
 
@@ -11,7 +9,8 @@ module.exports = {
   name: 'presenceUpdate',
   async execute(oldPresence, newPresence, client) {
     // Vérification des notifications globales
-    if (UserRepository.getSetting('notifications_enabled') === '0') return;
+    const notificationsEnabled = (await UserRepository.getSetting('notifications_enabled')) !== '0';
+    if (!notificationsEnabled) return;
 
     const user = newPresence?.user || oldPresence?.user;
     if (!user || user.bot) return;
@@ -33,8 +32,8 @@ module.exports = {
     try {
       if (!oldGame && newGame) {
         // Début de session
-        UserRepository.findOrCreate(user.id, user.username);
-        GameRepository.startSession(user.id, newGame.name);
+        await UserRepository.findOrCreate(user.id, user.username);
+        await GameRepository.startSession(user.id, newGame.name);
 
         const msg = randomResponses.get('startPlaying', newGame.name, {
           user: user.username,
@@ -44,12 +43,12 @@ module.exports = {
 
         // XP pour démarrage de session
         const result = await XPService.addXP(user.id, user.username, config.xp.perMinutePlaying, guild);
-        await _handleXPEvents(result, user, channel, guild);
+        await _handleXPEvents(result, user, channel);
 
       } else if (oldGame && !newGame) {
         // Fin de session
-        const duration = GameRepository.endSession(user.id, oldGame.name);
-        const userStats = GameRepository.getUserGameStats(user.id);
+        const duration = await GameRepository.endSession(user.id, oldGame.name);
+        const userStats = await GameRepository.getUserGameStats(user.id);
         const totalForGame = userStats[oldGame.name] || 0;
 
         const durationStr = _formatDuration(duration);
@@ -67,19 +66,19 @@ module.exports = {
         );
         if (xpEarned > 0) {
           const result = await XPService.addXP(user.id, user.username, xpEarned, guild);
-          await _handleXPEvents(result, user, channel, guild);
+          await _handleXPEvents(result, user, channel);
         }
 
         // Badges de temps de jeu
-        const newBadges = XPService.checkGameBadges(user.id, totalForGame);
+        const newBadges = await XPService.checkGameBadges(user.id, totalForGame);
         for (const badge of newBadges) {
           await channel.send(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`);
         }
 
       } else if (oldGame && newGame && oldGame.name !== newGame.name) {
         // Changement de jeu
-        GameRepository.endSession(user.id, oldGame.name);
-        GameRepository.startSession(user.id, newGame.name);
+        await GameRepository.endSession(user.id, oldGame.name);
+        await GameRepository.startSession(user.id, newGame.name);
 
         const msg = randomResponses.get('switchGame', null, {
           user: user.username,
@@ -94,7 +93,7 @@ module.exports = {
   },
 };
 
-async function _handleXPEvents(result, user, channel, guild) {
+async function _handleXPEvents(result, user, channel) {
   for (const event of result.events) {
     if (event.type === 'levelUp') {
       const msg = randomResponses.get('levelUp', null, {

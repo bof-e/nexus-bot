@@ -1,33 +1,20 @@
-const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
+const mongoose = require('mongoose');
+const config = require('../../config');
 const logger = require('../utils/logger');
 
-const DB_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DB_DIR, 'nexus.db');
+let _isConnected = false;
 
-let _db = null;
+async function connectDB() {
+  if (_isConnected) return;
 
-function getDB() {
-  if (_db) return _db;
-
-  // Création du dossier data s'il n'existe pas
-  if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-    logger.info(`[DB] Dossier créé : ${DB_DIR}`);
+  try {
+    await mongoose.connect(config.mongoUri);
+    _isConnected = true;
+    logger.info('[DB] Connecté à MongoDB avec succès');
+  } catch (err) {
+    logger.error(`[DB] Erreur de connexion MongoDB : ${err.message}`);
+    process.exit(1);
   }
-
-  _db = new Database(DB_PATH, {
-    verbose: process.env.NODE_ENV !== 'production' ? (msg) => logger.debug(`[SQLite] ${msg}`) : undefined,
-  });
-
-  // Performances
-  _db.pragma('journal_mode = WAL');
-  _db.pragma('foreign_keys = ON');
-  _db.pragma('synchronous = NORMAL');
-
-  logger.info(`[DB] Base de données ouverte : ${DB_PATH}`);
-  return _db;
 }
 
-module.exports = { getDB };
+module.exports = { connectDB };

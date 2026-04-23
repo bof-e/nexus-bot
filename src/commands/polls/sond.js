@@ -55,10 +55,10 @@ module.exports = {
       await reply.react(embedBuilder.numberEmoji(i)).catch(() => {});
     }
 
-    PollRepository.save(reply.id, interaction.channelId, question, options, endTime);
+    await PollRepository.save(reply.id, interaction.channelId, question, options, endTime);
 
     // XP pour création de sondage
-    const xpResult = await XPService.addXP(
+    await XPService.addXP(
       interaction.user.id,
       interaction.user.username,
       config.xp.voteInPoll,
@@ -77,14 +77,20 @@ module.exports = {
       votedUsers.add(user.id);
 
       // XP pour vote
-      UserRepository.findOrCreate(user.id, user.username);
+      await UserRepository.findOrCreate(user.id, user.username);
       await XPService.addXP(user.id, user.username, config.xp.voteInPoll, interaction.guild);
 
+      // Incrémentation voteCount
+      await (require('../../database/models/User')).updateOne(
+        { discordId: user.id },
+        { $inc: { voteCount: 1 } }
+      );
+
       // Badges de vote
-      const dbUser = UserRepository.findById(user.id);
-      const voteCount = (dbUser?.vote_count || 0) + 1;
-      if (voteCount >= 10) BadgeRepository.award(user.id, 'voter');
-      if (voteCount >= 50) BadgeRepository.award(user.id, 'democrat');
+      const dbUser = await UserRepository.findById(user.id);
+      const voteCount = dbUser?.voteCount || 0;
+      if (voteCount >= 10) await BadgeRepository.award(user.id, 'voter');
+      if (voteCount >= 50) await BadgeRepository.award(user.id, 'democrat');
     });
   },
 };

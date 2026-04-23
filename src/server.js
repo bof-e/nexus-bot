@@ -22,25 +22,27 @@ function startServer(client) {
   });
 
   // Dashboard public (leaderboard read-only)
-  app.get('/leaderboard', (req, res) => {
-    const entries = UserRepository.topByXP(15).map(u => ({
-      username: u.username,
-      xp: u.xp,
-      level: levelFromXP(u.xp),
-      rank: rankName(levelFromXP(u.xp)),
-    }));
+  app.get('/leaderboard', async (req, res) => {
+    try {
+      const topUsers = await UserRepository.topByXP(15);
+      const entries = topUsers.map(u => ({
+        username: u.username,
+        xp: u.xp,
+        level: levelFromXP(u.xp),
+        rank: rankName(levelFromXP(u.xp)),
+      }));
 
-    const rows = entries.map((e, i) =>
-      `<tr>
-        <td>${i + 1}</td>
-        <td>${escHtml(e.username)}</td>
-        <td>${e.level}</td>
-        <td>${e.xp.toLocaleString()}</td>
-        <td>${escHtml(e.rank)}</td>
-      </tr>`
-    ).join('');
+      const rows = entries.map((e, i) =>
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${escHtml(e.username)}</td>
+          <td>${e.level}</td>
+          <td>${e.xp.toLocaleString()}</td>
+          <td>${escHtml(e.rank)}</td>
+        </tr>`
+      ).join('');
 
-    res.send(`<!DOCTYPE html>
+      res.send(`<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -68,6 +70,10 @@ function startServer(client) {
   <footer>Mis à jour en temps réel · Nexus Bot v2</footer>
 </body>
 </html>`);
+    } catch (err) {
+      logger.error(`[Server] Erreur leaderboard : ${err.message}`);
+      res.status(500).send('Erreur interne du serveur');
+    }
   });
 
   const port = config.port;

@@ -28,8 +28,8 @@ module.exports = {
 
     if (sub === 'start') {
       const dureeMins = interaction.options.getInteger('duree') ?? 30;
-      UserRepository.setSetting('xp_multiplier', '2');
-      UserRepository.setSetting('event_active', '1');
+      await UserRepository.setSetting('xp_multiplier', '2');
+      await UserRepository.setSetting('event_active', '1');
 
       logger.info(`[Event] XP x2 démarré par ${interaction.user.tag} pour ${dureeMins}min`);
 
@@ -41,9 +41,9 @@ module.exports = {
       });
 
       // Reset automatique
-      setTimeout(() => {
-        UserRepository.setSetting('xp_multiplier', '1');
-        UserRepository.setSetting('event_active', '0');
+      setTimeout(async () => {
+        await UserRepository.setSetting('xp_multiplier', '1');
+        await UserRepository.setSetting('event_active', '0');
         interaction.channel.send({
           embeds: [embedBuilder.base(embedBuilder.COLORS.neutral)
             .setTitle('⏱️ Événement XP x2 terminé')
@@ -57,8 +57,8 @@ module.exports = {
     }
 
     if (sub === 'stop') {
-      UserRepository.setSetting('xp_multiplier', '1');
-      UserRepository.setSetting('event_active', '0');
+      await UserRepository.setSetting('xp_multiplier', '1');
+      await UserRepository.setSetting('event_active', '0');
       logger.info(`[Event] Arrêté par ${interaction.user.tag}`);
       return interaction.reply({
         embeds: [embedBuilder.success('Événement arrêté', 'Le multiplicateur XP est revenu à ×1.')],

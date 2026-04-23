@@ -3,6 +3,7 @@ const RSSService = require('./RSSService');
 const GameRepository = require('../database/GameRepository');
 const UserRepository = require('../database/UserRepository');
 const PollRepository = require('../database/PollRepository');
+const ReminderRepository = require('../database/ReminderRepository');
 const embedBuilder = require('../utils/embedBuilder');
 const config = require('../../config');
 const logger = require('../utils/logger');
@@ -36,7 +37,7 @@ class CronService {
     try {
       const channel = await client.channels.fetch(channelId).catch(() => null);
       if (!channel?.isTextBased()) return;
-      const gameData = GameRepository.getRecentGameStats(hours);
+      const gameData = await GameRepository.getRecentGameStats(hours);
       await channel.send({ embeds: [embedBuilder.recap(hours, gameData)] });
       logger.info('[Cron] Récap envoyé');
     } catch (e) {
@@ -45,11 +46,10 @@ class CronService {
   }
 
   async _sendReminder(client) {
-    const db = require('../database/db').getDB();
-    const reminder = db.prepare('SELECT * FROM reminders WHERE id = 1').get();
+    const reminder = await ReminderRepository.get();
     if (!reminder?.enabled) return;
-    if (reminder.expires_at && Date.now() > reminder.expires_at) {
-      db.prepare('UPDATE reminders SET enabled = 0 WHERE id = 1').run();
+    if (reminder.expiresAt && Date.now() > reminder.expiresAt) {
+      await ReminderRepository.update({ enabled: false });
       return;
     }
 
@@ -71,7 +71,7 @@ class CronService {
     try {
       const channel = await client.channels.fetch(channelId).catch(() => null);
       if (!channel?.isTextBased()) return;
-      const gameData = GameRepository.getRecentGameStats(24);
+      const gameData = await GameRepository.getRecentGameStats(24);
       const top = Object.entries(gameData)
         .sort((a, b) => b[1].count - a[1].count)
         .slice(0, 5);
@@ -83,23 +83,26 @@ class CronService {
   }
 
   async _closeExpiredPolls(client) {
-    const expired = PollRepository.getExpired();
+    const expired = await PollRepository.getExpired();
     for (const poll of expired) {
       try {
-        const channel = await client.channels.fetch(poll.channel_id).catch(() => null);
-        if (!channel?.isTextBased()) { PollRepository.delete(poll.message_id); continue; }
+        const channel = await client.channels.fetch(poll.channelId).catch(() => null);
+        if (!channel?.isTextBased()) { 
+          await PollRepository.delete(poll.messageId); 
+          continue; 
+        }
 
-        const message = await channel.messages.fetch(poll.message_id).catch(() => null);
+        const message = await channel.messages.fetch(poll.messageId).catch(() => null);
         if (message) {
           await message.fetch();
           const embed = embedBuilder.pollResult(poll.question, poll.options, message.reactions.cache);
           await message.edit({ embeds: [embed] });
         }
-        PollRepository.delete(poll.message_id);
-        logger.info(`[Cron] Sondage ${poll.message_id} clôturé`);
+        await PollRepository.delete(poll.messageId);
+        logger.info(`[Cron] Sondage ${poll.messageId} clôturé`);
       } catch (e) {
-        logger.warn(`[Cron] Erreur clôture sondage ${poll.message_id}: ${e.message}`);
-        PollRepository.delete(poll.message_id);
+        logger.warn(`[Cron] Erreur clôture sondage ${poll.messageId}: ${e.message}`);
+        await PollRepository.delete(poll.messageId);
       }
     }
   }

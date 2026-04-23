@@ -103,7 +103,7 @@ module.exports = {
       await XPService.addXP(winner.id, winner.username, xp, interaction.guild);
 
       // Badges duel
-      BadgeRepository.award(winner.id, 'fighter');
+      await BadgeRepository.award(winner.id, 'fighter');
 
       const resultEmbed = embedBuilder.duelResult(winner, loser, CHOICES[winner.id === challenger.id ? cChoice : tChoice], CHOICES[winner.id === challenger.id ? tChoice : cChoice], xp);
       resultText = randomResponses.get('duelWin', null, { winner: winner.username, loser: loser.username, xp });

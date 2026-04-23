@@ -59,7 +59,7 @@ function profile(user, dbUser, stats, badges) {
       { name: `✨ Niveau ${level} — ${rank}`, value: `\`${bar}\` **${pct}%** (${dbUser.xp.toLocaleString()} / ${nextXP.toLocaleString()} XP)`, inline: false },
       { name: '🏆 Top jeux', value: topGames.length ? topGames.join('\n') : '_Aucune session enregistrée_', inline: true },
       { name: '🏅 Badges', value: badgeDisplay, inline: true },
-      { name: '📊 Stats', value: `🔥 Streak : **${dbUser.daily_streak}j**\n📅 Membre depuis <t:${Math.floor(dbUser.created_at / 1000)}:R>`, inline: false },
+      { name: '📊 Stats', value: `🔥 Streak : **${dbUser.dailyStreak}j**\n📅 Membre depuis <t:${Math.floor(dbUser.createdAt / 1000)}:R>`, inline: false },
     )
     .setFooter({ text: `Nexus · ${user.id}` });
 
@@ -74,7 +74,7 @@ function leaderboard(entries, guildName) {
     const level = levelFromXP(e.xp);
     const rank = rankName(level);
     const medal = medals[i] || `**${i + 1}.**`;
-    return `${medal} <@${e.discord_id}> — Nv.${level} · ${e.xp.toLocaleString()} XP · ${rank}`;
+    return `${medal} <@${e.discordId}> — Nv.${level} · ${e.xp.toLocaleString()} XP · ${rank}`;
   });
 
   return base(COLORS.gold)

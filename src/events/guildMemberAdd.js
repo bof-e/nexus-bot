@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 module.exports = {
   name: 'guildMemberAdd',
   async execute(member, client) {
-    UserRepository.findOrCreate(member.user.id, member.user.username);
+    await UserRepository.findOrCreate(member.user.id, member.user.username);
 
     const msg = randomResponses.get('welcome', null, { user: member.user.username });
     logger.info(`[Welcome] ${member.user.tag} a rejoint le serveur`);
