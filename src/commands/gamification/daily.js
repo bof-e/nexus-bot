@@ -1,0 +1,44 @@
+const { SlashCommandBuilder } = require('discord.js');
+const XPService = require('../../services/XPService');
+const embedBuilder = require('../../utils/embedBuilder');
+const randomResponses = require('../../utils/randomResponses');
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName('daily')
+    .setDescription('Réclame ton bonus XP quotidien et maintiens ton streak !'),
+
+  async execute(interaction) {
+    const result = XPService.claimDaily(interaction.user.id, interaction.user.username);
+
+    if (!result.success) {
+      const hours = Math.floor(result.remaining / 3600000);
+      const minutes = Math.floor((result.remaining % 3600000) / 60000);
+      return interaction.reply({
+        embeds: [embedBuilder.error(
+          'Déjà réclamé',
+          `Tu as déjà pris ton bonus aujourd'hui !\n⏰ Prochain bonus dans **${hours}h ${minutes}m**`
+        )],
+        ephemeral: true,
+      });
+    }
+
+    const msg = randomResponses.get('dailyClaimed', null, {
+      user: interaction.user.username,
+      xp: result.xp,
+      streak: result.streak,
+    });
+
+    const embed = embedBuilder.success('Bonus quotidien !', msg)
+      .addFields({ name: '🔥 Streak', value: `${result.streak} jour${result.streak > 1 ? 's' : ''} consécutif${result.streak > 1 ? 's' : ''}`, inline: true });
+
+    if (result.newBadges?.length) {
+      embed.addFields({
+        name: '🏅 Nouveaux badges',
+        value: result.newBadges.map(b => `${b.emoji} **${b.name}** — ${b.desc}`).join('\n'),
+      });
+    }
+
+    await interaction.reply({ embeds: [embed] });
+  },
+};

@@ -1,0 +1,25 @@
+{
+  "name": "nexus-bot",
+  "version": "2.0.0",
+  "description": "Bot Discord gaming communautaire — Nexus",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy": "node deploy-commands.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sapphire/async-queue": "^1.5.5",
+    "better-sqlite3": "^9.6.0",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "node-cron": "^4.2.1",
+    "rss-parser": "^3.13.0",
+    "winston": "^3.14.2",
+    "winston-daily-rotate-file": "^5.0.0"
+  }
+}
