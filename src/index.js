@@ -37,6 +37,23 @@ async function bootstrap() {
   CommandLoader.load(client);
   EventLoader.load(client);
 
+  // Enregistrement automatique des commandes (Deploy)
+  try {
+    const { REST, Routes } = require('discord.js');
+    const rest = new REST({ version: '10' }).setToken(config.token);
+    const commands = Array.from(client.commands.values()).map(c => c.data.toJSON());
+
+    if (config.guildId) {
+      await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId), { body: commands });
+      logger.info('[Deploy] Commandes enregistrées sur le serveur local');
+    } else {
+      await rest.put(Routes.applicationCommands(config.clientId), { body: commands });
+      logger.info('[Deploy] Commandes enregistrées globalement');
+    }
+  } catch (err) {
+    logger.error(`[Deploy] Erreur enregistrement commandes : ${err.message}`);
+  }
+
   // Serveur Express (keep-alive + dashboard)
   const { startServer } = require('./server');
   startServer(client);

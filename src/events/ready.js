@@ -53,6 +53,13 @@ module.exports = {
     // Démarrage des tâches cron
     CronService.start(client);
 
+    // Vérification des canaux configurés
+    const configuredChannels = Object.values(config.channels).filter(Boolean);
+    if (configuredChannels.length === 0) {
+      logger.warn('[Attention] Aucun canal n''est configuré dans les variables d''environnement. Le bot sera silencieux.');
+      logger.info('Pour activer les messages, crée des canaux sur Discord et ajoute leurs IDs dans Render (ex: GCHANNEL_ID pour le gaming).');
+    }
+
     logger.info(`[Ready] ${client.guilds.cache.size} serveur(s) connecté(s)`);
   },
 };
