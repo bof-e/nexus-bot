@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/nexus.db
+data/nexus.db-shm
+data/nexus.db-wal
+logs/*.log
