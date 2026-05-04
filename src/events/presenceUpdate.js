@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require('discord.js');
 const UserRepository = require('../database/UserRepository');
 const GameRepository = require('../database/GameRepository');
 const XPService = require('../services/XPService');
@@ -5,10 +6,29 @@ const randomResponses = require('../utils/randomResponses');
 const config = require('../../config');
 const logger = require('../utils/logger');
 
+// FIX DOUBLON : le bot dans N serveurs déclenche N fois presenceUpdate pour le même user.
+// On mémorise les actions récentes (userId + action + jeu) pendant 10s pour dédupliquer.
+const _recentEvents = new Map();
+function _isDuplicate(key) {
+  const now = Date.now();
+  if (_recentEvents.has(key) && now - _recentEvents.get(key) < 10000) return true;
+  _recentEvents.set(key, now);
+  for (const [k, t] of _recentEvents) {
+    if (now - t > 30000) _recentEvents.delete(k);
+  }
+  return false;
+}
+
+const GAME_COLORS = {
+  'Genshin Impact':  0x4A90D9,
+  'Warframe':        0x4AC3D9,
+  'Wuthering Waves': 0x6B4AD9,
+};
+const DEFAULT_COLOR = 0x534AB7;
+
 module.exports = {
   name: 'presenceUpdate',
   async execute(oldPresence, newPresence, client) {
-    // Vérification des notifications globales
     const notificationsEnabled = (await UserRepository.getSetting('notifications_enabled')) !== '0';
     if (!notificationsEnabled) return;
 
@@ -31,33 +51,46 @@ module.exports = {
 
     try {
       if (!oldGame && newGame) {
-        // Début de session
+        if (_isDuplicate(`${user.id}:start:${newGame.name}`)) return;
+
         await UserRepository.findOrCreate(user.id, user.username);
         await GameRepository.startSession(user.id, newGame.name);
 
-        const msg = randomResponses.get('startPlaying', newGame.name, {
+        const description = randomResponses.get('startPlaying', newGame.name, {
           user: user.username,
           game: newGame.name,
         });
-        await channel.send(msg);
-        // BUG FIX: on ne donne plus de XP au démarrage — l'XP proportionnel
-        // au temps joué est attribué en fin de session uniquement (évite le double gain).
+
+        const embed = new EmbedBuilder()
+          .setColor(GAME_COLORS[newGame.name] ?? DEFAULT_COLOR)
+          .setDescription(description)
+          .setThumbnail(user.displayAvatarURL({ size: 64 }))
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
 
       } else if (oldGame && !newGame) {
-        // Fin de session
+        if (_isDuplicate(`${user.id}:stop:${oldGame.name}`)) return;
+
         const duration = await GameRepository.endSession(user.id, oldGame.name);
         const userStats = await GameRepository.getUserGameStats(user.id);
         const totalForGame = userStats[oldGame.name] || 0;
-
         const durationStr = _formatDuration(duration);
-        const msg = randomResponses.get('stopPlaying', null, {
+
+        const description = randomResponses.get('stopPlaying', null, {
           user: user.username,
           game: oldGame.name,
           duration: durationStr,
         });
-        await channel.send(msg);
 
-        // XP proportionnel au temps (max 60 XP/h)
+        const embed = new EmbedBuilder()
+          .setColor(0x888780)
+          .setDescription(description)
+          .setThumbnail(user.displayAvatarURL({ size: 64 }))
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
+
         const xpEarned = Math.min(
           Math.floor((duration / 60) * config.xp.perMinutePlaying),
           config.xp.maxPerHourPlaying
@@ -67,23 +100,35 @@ module.exports = {
           await _handleXPEvents(result, user, channel);
         }
 
-        // Badges de temps de jeu
         const newBadges = await XPService.checkGameBadges(user.id, totalForGame);
         for (const badge of newBadges) {
-          await channel.send(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`);
+          const badgeEmbed = new EmbedBuilder()
+            .setColor(0xEF9F27)
+            .setDescription(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`)
+            .setThumbnail(user.displayAvatarURL({ size: 64 }))
+            .setTimestamp();
+          await channel.send({ embeds: [badgeEmbed] });
         }
 
       } else if (oldGame && newGame && oldGame.name !== newGame.name) {
-        // Changement de jeu
+        if (_isDuplicate(`${user.id}:switch:${oldGame.name}:${newGame.name}`)) return;
+
         await GameRepository.endSession(user.id, oldGame.name);
         await GameRepository.startSession(user.id, newGame.name);
 
-        const msg = randomResponses.get('switchGame', null, {
+        const description = randomResponses.get('switchGame', null, {
           user: user.username,
           old: oldGame.name,
           new: newGame.name,
         });
-        await channel.send(msg);
+
+        const embed = new EmbedBuilder()
+          .setColor(GAME_COLORS[newGame.name] ?? DEFAULT_COLOR)
+          .setDescription(description)
+          .setThumbnail(user.displayAvatarURL({ size: 64 }))
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
       }
     } catch (e) {
       logger.error(`[Presence] Erreur : ${e.message}`);
@@ -99,12 +144,20 @@ async function _handleXPEvents(result, user, channel) {
         level: event.level,
         rank: event.rank,
       });
-      await channel.send({ content: msg });
+      const embed = new EmbedBuilder()
+        .setColor(0xEF9F27)
+        .setDescription(msg)
+        .setThumbnail(user.displayAvatarURL({ size: 64 }))
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
     }
     if (event.type === 'badge') {
-      await channel.send(
-        `🏅 <@${user.id}> débloque le badge **${event.badge.emoji} ${event.badge.name}** ! *${event.badge.desc}*`
-      );
+      const embed = new EmbedBuilder()
+        .setColor(0xEF9F27)
+        .setDescription(`🏅 <@${user.id}> débloque le badge **${event.badge.emoji} ${event.badge.name}** ! *${event.badge.desc}*`)
+        .setThumbnail(user.displayAvatarURL({ size: 64 }))
+        .setTimestamp();
+      await channel.send({ embeds: [embed] });
     }
   }
 }
