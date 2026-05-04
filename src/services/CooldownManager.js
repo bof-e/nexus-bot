@@ -1,14 +1,9 @@
-/**
- * Gestionnaire de cooldowns en mémoire.
- * Map<commandName, Map<userId, timestamp>>
- */
 class CooldownManager {
   constructor() {
     this._store = new Map();
   }
 
-  // BUG FIX: l'ancienne méthode check() retournait toujours null (code mort).
-  // Toute la logique est dans isOnCooldown() ci-dessous.  isOnCooldown(commandName, userId, cooldownSeconds) {
+  isOnCooldown(commandName, userId, cooldownSeconds) {
     const cmd = this._store.get(commandName);
     if (!cmd) return { onCooldown: false };
 
@@ -31,7 +26,6 @@ class CooldownManager {
     this._store.get(commandName).set(userId, Date.now());
   }
 
-  /** Nettoyage périodique des entrées expirées (appeler toutes les heures). */
   cleanup(maxAgeMs = 24 * 3600 * 1000) {
     const now = Date.now();
     for (const [cmd, users] of this._store) {
