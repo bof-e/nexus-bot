@@ -10,6 +10,4 @@ const aniListUserSchema = new mongoose.Schema({
   linkedAt:       { type: Number, default: () => Date.now() },
 });
 
-aniListUserSchema.index({ discordId: 1 });
-
 module.exports = mongoose.model('AniListUser', aniListUserSchema);
