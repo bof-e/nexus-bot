@@ -192,4 +192,47 @@ function numberEmoji(i) {
   return emojis[i] ?? `${i + 1}.`;
 }
 
-module.exports = { base, error, success, profile, leaderboard, poll, pollResult, recap, topGames, gameUpdate, duelChallenge, duelResult, quiz, welcome, COLORS, numberEmoji };
+/**
+ * Embed du classement AniList du serveur.
+ * @param {Array}  entries   - Stats triées (minutesWatched décroissant)
+ * @param {string} guildName - Nom du serveur Discord
+ */
+function aniboard(entries, guildName) {
+  const MEDALS = ['🥇', '🥈', '🥉'];
+
+  const lines = entries.map((e, i) => {
+    const medal = MEDALS[i] ?? `**${i + 1}.**`;
+
+    const totalMinutes = e.minutesWatched;
+    const days    = Math.floor(totalMinutes / 1440);
+    const hours   = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+
+    const timeStr = days > 0
+      ? `${days}j ${hours}h ${minutes}m`
+      : `${hours}h ${minutes}m`;
+
+    return (
+      `${medal} <@${e.discordId}> — **[${e.username}](${e.siteUrl})**\n`
+      + `┗ ⏱ \`${timeStr}\` · 📺 ${e.episodesWatched.toLocaleString()} épisodes · ✅ ${e.completed} animes terminés`
+    );
+  });
+
+  // Totaux agrégés
+  const totalDays = Math.floor(
+    entries.reduce((sum, e) => sum + e.minutesWatched, 0) / 1440
+  );
+  const totalCompleted = entries.reduce((sum, e) => sum + e.completed, 0);
+
+  return base(0xE8366A) // rose AniList
+    .setTitle('🎌 Classement AniList — ' + guildName)
+    .setDescription(lines.join('\n\n') || '_Aucune donnée disponible._')
+    .addFields({
+      name: '📊 Totaux du serveur',
+      value: `⏱ **${totalDays.toLocaleString()} jours** cumulés · ✅ **${totalCompleted.toLocaleString()}** animes terminés`,
+    })
+    .setThumbnail('https://anilist.co/img/icons/icon.svg')
+    .setFooter({ text: `Nexus · ${entries.length} membre(s) classé(s) · AniList.co` });
+}
+
+module.exports = { base, error, success, profile, leaderboard, poll, pollResult, recap, topGames, gameUpdate, duelChallenge, duelResult, quiz, welcome, aniboard, COLORS, numberEmoji };
