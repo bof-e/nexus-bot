@@ -1,7 +1,7 @@
 const CronService = require('../services/CronService');
 const PollRepository = require('../database/PollRepository');
 const GameRepository = require('../database/GameRepository');
-const config = require('../../config'); // BUG FIX: manquait dans l'original → crash garanti
+const config = require('../../config');
 const logger = require('../utils/logger');
 
 module.exports = {
@@ -10,14 +10,14 @@ module.exports = {
   async execute(client) {
     logger.info(`✅ Nexus connecté en tant que ${client.user.tag}`);
 
-    // Nettoyage des sessions actives au démarrage (bot crash recovery)
+    // Nettoyage des sessions orphelines
     try {
       const cleaned = await GameRepository.cleanOrphanSessions();
       if (cleaned.modifiedCount > 0) {
         logger.warn(`[Ready] ${cleaned.modifiedCount} session(s) orpheline(s) nettoyée(s)`);
       }
     } catch (e) {
-      logger.error(`[Ready] Erreur nettoyage sessions orphelines : ${e.message}`);
+      logger.error(`[Ready] Erreur nettoyage sessions : ${e.message}`);
     }
 
     // Sondages expirés pendant le downtime
@@ -57,8 +57,7 @@ module.exports = {
     // Vérification des canaux configurés
     const configuredChannels = Object.values(config.channels).filter(Boolean);
     if (configuredChannels.length === 0) {
-      logger.warn('[Attention] Aucun canal n''est configuré dans les variables d''environnement. Le bot sera silencieux.');
-      logger.info('Pour activer les messages, crée des canaux sur Discord et ajoute leurs IDs dans Render (ex: GCHANNEL_ID pour le gaming).');
+      logger.warn("[Ready] Aucun canal configuré — le bot sera silencieux.");
     }
 
     logger.info(`[Ready] ${client.guilds.cache.size} serveur(s) connecté(s)`);
