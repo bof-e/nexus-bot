@@ -33,7 +33,7 @@ function startServer(client) {
       }));
 
       const rows = entries.map((e, i) =>
-        `<tr>
+        `<tr class="${i < 3 ? `rank-${i + 1}` : ''}">
           <td>${i + 1}</td>
           <td>${escHtml(e.username)}</td>
           <td>${e.level}</td>

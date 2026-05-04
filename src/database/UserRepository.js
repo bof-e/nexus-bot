@@ -2,7 +2,7 @@ const User = require('./models/User');
 const Setting = require('./models/Setting');
 
 class UserRepository {
-  /** Retourne ou crée un utilisateur. */
+  /** Retourne ou crée un utilisateur (atomique — gère les race conditions). */
   async findOrCreate(discordId, username) {
     let user = await User.findOne({ discordId });
     if (user) {
@@ -12,9 +12,15 @@ class UserRepository {
       }
       return user;
     }
-    user = new User({ discordId, username });
-    await user.save();
-    return user;
+    try {
+      user = new User({ discordId, username });
+      await user.save();
+      return user;
+    } catch (err) {
+      // Race condition : un autre appel concurrent a créé l'utilisateur en premier
+      // L'index unique sur discordId lève une erreur — on relit simplement le doc.
+      return User.findOne({ discordId });
+    }
   }
 
   async findById(discordId) {

@@ -38,17 +38,13 @@ module.exports = {
 
     // Attente de l'acceptation par la cible
     const acceptFilter = (reaction, user) => reaction.emoji.name === '✅' && user.id === target.id;
-    let accepted = false;
     try {
       await msg.awaitReactions({ filter: acceptFilter, max: 1, time: 30000, errors: ['time'] });
-      accepted = true;
     } catch {
       return interaction.editReply({
         embeds: [embedBuilder.error('Duel annulé', `<@${target.id}> n'a pas accepté le défi dans les 30 secondes.`)],
       });
     }
-
-    if (!accepted) return;
 
     // Phase de choix via boutons éphémères
     const getChoiceButtons = () => new ActionRowBuilder().addComponents(

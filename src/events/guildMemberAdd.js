@@ -14,7 +14,8 @@ module.exports = {
     // Message dans le canal système du serveur si disponible
     const systemChannel = member.guild.systemChannel;
     if (systemChannel?.isTextBased()) {
-      await systemChannel.send(msg).catch(() => {});
+      const welcomeEmbed = embedBuilder.welcome(member.user, 0);
+      await systemChannel.send({ embeds: [welcomeEmbed] }).catch(() => {});
     }
 
     // DM d'accueil
