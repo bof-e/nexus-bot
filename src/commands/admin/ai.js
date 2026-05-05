@@ -128,7 +128,7 @@ module.exports = {
       const embed = embedBuilder.base(geminiOk ? 0x43B581 : 0xF04747)
         .setTitle('🤖 Statut du système IA')
         .addFields(
-          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (gemini-2.0-flash)' : '❌ Désactivé (clé manquante)', inline: true },
+          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (cascade : 2.5-flash → 1.5-flash-8b → 1.5-flash)' : '❌ Désactivé (clé manquante)', inline: true },
           { name: 'Recherche web',      value: searchBackend,                                                               inline: true },
           { name: 'Salon IA dédié',     value: aiChannel,                                                                   inline: false },
           { name: 'Triggers actifs',    value: '• Mention directe\n• Réponse à un message du bot\n• Messages dans le salon dédié', inline: false },
