@@ -21,6 +21,16 @@ module.exports = {
     updates:  process.env.UPDATE_CHANNEL_ID   || null,
     stats:    process.env.STATS_CHANNEL_ID    || null,
     gaming:   process.env.GCHANNEL_ID         || null,
+    // Salon dédié IA — configurable via /ai salon
+    ai:       process.env.AI_CHANNEL_ID       || null,
+  },
+
+  // Clés IA & recherche web
+  ai: {
+    geminiKey:    process.env.GEMINI_API_KEY  || null,
+    googleCseKey: process.env.GOOGLE_CSE_KEY  || null,
+    googleCseId:  process.env.GOOGLE_CSE_ID   || null,
+    serpApiKey:   process.env.SERP_API_KEY    || null,
   },
 
   roles: {

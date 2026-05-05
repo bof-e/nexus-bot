@@ -47,6 +47,22 @@ module.exports = {
             '`/rappel on/off/set` — Activer/désactiver/configurer les rappels',
             '`/notif on/off` — Activer/désactiver les notifications de présence',
             '`/event start/stop` — Lancer/arrêter un événement XP x2',
+            '`/ai salon/reset/statut` — Gérer le système IA',
+          ].join('\n'),
+        },
+        {
+          name: '🎌 AniList',
+          value: [
+            '`/register <pseudo>` — Lier ton compte AniList à Discord',
+            '`/aniboard` — Classement AniList du serveur (temps de visionnage)',
+          ].join('\n'),
+        },
+        {
+          name: '🤖 IA & Recherche',
+          value: [
+            '`/recherche <requête>` — Recherche sur le web + résumé par Nexus',
+            '**Mentionne Nexus** ou **réponds à un de ses messages** pour lui parler directement.',
+            '_Le salon IA dédié se configure avec_ `/ai salon`',
           ].join('\n'),
         },
         {

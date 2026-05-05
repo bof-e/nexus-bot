@@ -4,6 +4,7 @@ const GameRepository = require('../database/GameRepository');
 const config = require('../../config');
 const logger = require('../utils/logger');
 
+const UserRepository = require('../database/UserRepository');
 module.exports = {
   name: 'ready',
   once: true,
@@ -53,6 +54,17 @@ module.exports = {
 
     // Démarrage des tâches cron
     CronService.start(client);
+
+    // Restauration du salon IA depuis la DB (persistance entre redémarrages)
+    try {
+      const savedAiChannel = await UserRepository.getSetting('ai_channel');
+      if (savedAiChannel) {
+        config.channels.ai = savedAiChannel;
+        logger.info('[Ready] Salon IA restauré : ' + savedAiChannel);
+      }
+    } catch (e) {
+      logger.warn('[Ready] Impossible de restaurer le salon IA : ' + e.message);
+    }
 
     // Vérification des canaux configurés
     const configuredChannels = Object.values(config.channels).filter(Boolean);
