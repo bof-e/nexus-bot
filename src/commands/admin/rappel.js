@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const ReminderRepository = require('../../database/ReminderRepository');
 const embedBuilder = require('../../utils/embedBuilder');
 const logger = require('../../utils/logger');
@@ -34,7 +34,7 @@ module.exports = {
 
     if (sub === 'on') {
       if (reminder.enabled) {
-        return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà activés.')], ephemeral: true });
+        return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà activés.')], flags: MessageFlags.Ephemeral });
       }
       await ReminderRepository.update({ enabled: true, expiresAt: Date.now() + 24 * 3600000 });
       logger.info(`[Rappel] Activé par ${interaction.user.tag}`);
@@ -43,7 +43,7 @@ module.exports = {
 
     if (sub === 'off') {
       if (!reminder.enabled) {
-        return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà désactivés.')], ephemeral: true });
+        return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà désactivés.')], flags: MessageFlags.Ephemeral });
       }
       await ReminderRepository.update({ enabled: false, expiresAt: null });
       logger.info(`[Rappel] Désactivé par ${interaction.user.tag}`);
@@ -68,7 +68,7 @@ module.exports = {
             { name: 'Message', value: `"${updated.message}"`, inline: false },
           )
           .setTimestamp()],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

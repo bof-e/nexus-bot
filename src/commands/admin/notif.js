@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const UserRepository = require('../../database/UserRepository');
 const embedBuilder = require('../../utils/embedBuilder');
 
@@ -29,7 +29,7 @@ module.exports = {
           .setTitle('🔔 Notifications de présence')
           .setDescription(enabled ? '✅ **Actives** — Les membres reçoivent des messages quand quelqu\'un joue.' : '❌ **Inactives**')
           .setTimestamp()],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

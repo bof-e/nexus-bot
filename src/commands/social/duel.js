@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const XPService = require('../../services/XPService');
 const BadgeRepository = require('../../database/BadgeRepository');
 const UserRepository = require('../../database/UserRepository'); // BUG FIX: import manquant pour incrementDuelWins
@@ -24,10 +24,10 @@ module.exports = {
     const target = interaction.options.getUser('adversaire');
 
     if (target.id === challenger.id) {
-      return interaction.reply({ embeds: [embedBuilder.error('Duel', 'Tu ne peux pas te défier toi-même.')], ephemeral: true });
+      return interaction.reply({ embeds: [embedBuilder.error('Duel', 'Tu ne peux pas te défier toi-même.')], flags: MessageFlags.Ephemeral });
     }
     if (target.bot) {
-      return interaction.reply({ embeds: [embedBuilder.error('Duel', 'Tu ne peux pas défier un bot.')], ephemeral: true });
+      return interaction.reply({ embeds: [embedBuilder.error('Duel', 'Tu ne peux pas défier un bot.')], flags: MessageFlags.Ephemeral });
     }
 
     const embed = embedBuilder.duelChallenge(challenger, target);

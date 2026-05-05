@@ -1,7 +1,5 @@
-const {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-} = require('discord.js');
+const { SlashCommandBuilder,
+  PermissionFlagsBits, MessageFlags } = require('discord.js');
 const AIConversationRepository = require('../../database/AIConversationRepository');
 const UserRepository           = require('../../database/UserRepository');
 const AIService                = require('../../services/AIService');
@@ -46,7 +44,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const sub = interaction.options.getSubcommand();
 
     // ── /ai salon ────────────────────────────────────────────────────
@@ -130,7 +128,7 @@ module.exports = {
       const embed = embedBuilder.base(geminiOk ? 0x43B581 : 0xF04747)
         .setTitle('🤖 Statut du système IA')
         .addFields(
-          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (gemini-1.5-flash)' : '❌ Désactivé (clé manquante)', inline: true },
+          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (gemini-2.0-flash)' : '❌ Désactivé (clé manquante)', inline: true },
           { name: 'Recherche web',      value: searchBackend,                                                               inline: true },
           { name: 'Salon IA dédié',     value: aiChannel,                                                                   inline: false },
           { name: 'Triggers actifs',    value: '• Mention directe\n• Réponse à un message du bot\n• Messages dans le salon dédié', inline: false },

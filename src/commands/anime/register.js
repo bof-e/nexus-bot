@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const AniListRepository = require('../../database/AniListRepository');
 const embedBuilder    = require('../../utils/embedBuilder');
 
@@ -41,7 +41,7 @@ module.exports = {
     ),
 
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const username = interaction.options.getString('pseudo_anilist').trim();
 

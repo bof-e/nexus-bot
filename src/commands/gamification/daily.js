@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const XPService = require('../../services/XPService');
 const embedBuilder = require('../../utils/embedBuilder');
 const randomResponses = require('../../utils/randomResponses');
@@ -19,7 +19,7 @@ module.exports = {
           'Déjà réclamé',
           `Tu as déjà pris ton bonus aujourd'hui !\n⏰ Prochain bonus dans **${hours}h ${minutes}m**`
         )],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 

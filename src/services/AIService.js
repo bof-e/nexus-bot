@@ -79,7 +79,7 @@ class AIService {
     const genAI = new GoogleGenerativeAI(key);
 
     this.model = genAI.getGenerativeModel({
-      model:           'gemini-1.5-flash',
+      model:           'gemini-2.0-flash',
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       tools:           [SEARCH_TOOL],
       safetySettings:  SAFETY_SETTINGS,

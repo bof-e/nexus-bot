@@ -11,7 +11,7 @@ module.exports = {
     const command = client.commands?.get(interaction.commandName);
     if (!command) {
       logger.warn(`[Interaction] Commande inconnue : ${interaction.commandName}`);
-      return interaction.reply({ embeds: [embedBuilder.error('Commande inconnue', 'Cette commande n\'existe pas.')], ephemeral: true });
+      return interaction.reply({ embeds: [embedBuilder.error('Commande inconnue', 'Cette commande n\'existe pas.')], flags: MessageFlags.Ephemeral });
     }
 
     // Vérification du cooldown
@@ -28,7 +28,7 @@ module.exports = {
             'Cooldown',
             `Cette commande est en cooldown. Réessaie dans **${remaining}s**.`
           )],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }
@@ -46,9 +46,9 @@ module.exports = {
 
       try {
         if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ embeds: [errEmbed], ephemeral: true });
+          await interaction.followUp({ embeds: [errEmbed], flags: MessageFlags.Ephemeral });
         } else {
-          await interaction.reply({ embeds: [errEmbed], ephemeral: true });
+          await interaction.reply({ embeds: [errEmbed], flags: MessageFlags.Ephemeral });
         }
       } catch (e) {
         logger.error(`[Interaction] Impossible de répondre à l'erreur : ${e.message}`);
