@@ -33,20 +33,27 @@ EXEMPLES DE RÉPLIQUES :
 `.trim();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cascade de modèles (free tier Google AI Studio, mai 2025)
+// Cascade de modèles
 //
-//  gemini-2.5-flash-preview : 10 RPM / 500 RPD
-//  gemini-1.5-flash-8b      : 15 RPM / 1 500 RPD  (le plus généreux)
-//  gemini-1.5-flash         : 15 RPM / 1 500 RPD
+// Ton quota (vu sur Google AI Studio) :
+//   gemini-2.5-flash      → 6 RPM / 300K TPM  ✅ free tier actif
+//   gemini-2.5-flash-lite → limits inférieures mais plus souple sur RPD
 //
-//  ⚠️  gemini-2.0-flash N'A PAS de free tier (limite = 0).
+// ⚠️  Noms EXACTS confirmés par la doc officielle (mai 2025) :
+//     https://ai.google.dev/api  →  gemini-2.5-flash:generateContent
+//
 // ─────────────────────────────────────────────────────────────────────────────
 const MODEL_CASCADE = [
-  'gemini-2.5-flash-preview-05-20',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-flash',
+  'gemini-2.5-flash',       // principal — 6 RPM free tier
+  'gemini-2.5-flash-lite',  // fallback allégé
 ];
 
+// 6 RPM = 1 requête toutes les 10s → on espace à 11s pour rester sous la limite
+const QUEUE_INTERVAL_MS = 11_000;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Outil webSearch (function calling)
+// ─────────────────────────────────────────────────────────────────────────────
 const SEARCH_TOOL = {
   functionDeclarations: [{
     name: 'webSearch',
@@ -69,11 +76,10 @@ const SAFETY_SETTINGS = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// File d'attente globale — évite les rafales qui font exploser le RPM
-// Interval 4 500 ms ≈ 13 req/min → sous le seuil de 15 RPM
+// File d'attente globale — sérialise toutes les requêtes et respecte le RPM
 // ─────────────────────────────────────────────────────────────────────────────
 class RequestQueue {
-  constructor(intervalMs = 4500) {
+  constructor(intervalMs) {
     this._queue    = [];
     this._running  = false;
     this._interval = intervalMs;
@@ -100,14 +106,14 @@ class RequestQueue {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers erreurs
+// Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function parseRetryAfter(msg) {
   const m = msg.match(/retry.*?(\d+(?:\.\d+)?)\s*s/i);
   return m ? Math.ceil(parseFloat(m[1]) * 1000) : null;
 }
 function backoffMs(attempt) {
-  return Math.min(3000 * 2 ** attempt + Math.random() * 1000, 30000);
+  return Math.min(12_000 * 2 ** attempt + Math.random() * 2000, 60_000);
 }
 function isRateLimitError(err) {
   return err?.message?.includes('429') || err?.status === 429;
@@ -115,14 +121,13 @@ function isRateLimitError(err) {
 function isModelUnavailableError(err) {
   const msg = err?.message || '';
   return msg.includes('404') || msg.includes('limit: 0') ||
-         msg.includes('not found') || msg.includes('introuvable');
+         msg.includes('not found') || msg.includes('introuvable') ||
+         msg.includes('RESOURCE_EXHAUSTED');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Cooldown par canal
-// ─────────────────────────────────────────────────────────────────────────────
+// Cooldown par canal — évite de spammer même canal
 const _channelCooldowns = new Map();
-const CHANNEL_COOLDOWN_MS = 5000;
+const CHANNEL_COOLDOWN_MS = 12_000; // légèrement > QUEUE_INTERVAL pour cohérence
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AIService
@@ -137,16 +142,15 @@ class AIService {
     }
     this.enabled       = true;
     this._genAI        = new GoogleGenerativeAI(key);
-    this._queue        = new RequestQueue(4500);
+    this._queue        = new RequestQueue(QUEUE_INTERVAL_MS);
     this._modelIndex   = 0;
     this._modelCache   = {};
     this._blockedUntil = 0;
-    logger.info('[AI] Initialisé. Modèle actif : ' + MODEL_CASCADE[0]);
+    logger.info('[AI] Initialisé — modèle : ' + MODEL_CASCADE[0] + ' (' + (QUEUE_INTERVAL_MS / 1000) + 's entre requêtes)');
   }
 
   _getModel(idx) {
-    const i    = idx ?? this._modelIndex;
-    const name = MODEL_CASCADE[i];
+    const name = MODEL_CASCADE[idx ?? this._modelIndex];
     if (!this._modelCache[name]) {
       this._modelCache[name] = this._genAI.getGenerativeModel({
         model:             name,
@@ -177,25 +181,27 @@ class AIService {
     return true;
   }
 
+  /** Ajoute la requête à la file. Retourne null si désactivé. */
   async respond(channelId, userText, context = {}) {
     if (!this.enabled) return null;
+    logger.debug('[AI] File : ' + this._queue._queue.length + ' en attente');
     return this._queue.enqueue(() => this._generate(channelId, userText, context));
   }
 
   async _generate(channelId, userText, context, attempt = 0) {
-    const MAX_RETRIES = 3;
+    const MAX_RETRIES = 2; // 3 tentatives au total (0, 1, 2)
     try {
-      const history      = await AIConversationRepository.getHistory(channelId);
-      const prefix       = this._buildContextPrefix(context);
-      const fullText     = prefix ? prefix + '\n' + userText : userText;
-      const chat         = this._getModel().startChat({ history });
+      const history  = await AIConversationRepository.getHistory(channelId);
+      const prefix   = this._buildContextPrefix(context);
+      const fullText = prefix ? prefix + '\n' + userText : userText;
+      const chat     = this._getModel().startChat({ history });
 
       let result   = await chat.sendMessage(fullText);
       let response = result.response;
 
-      // Boucle function calling
+      // Boucle function calling (webSearch)
       let iters = 0;
-      while (iters < 3) {
+      while (iters < 2) { // max 2 recherches par message
         const calls = response.functionCalls();
         if (!calls?.length) break;
         iters++;
@@ -222,28 +228,30 @@ class AIService {
       return text;
 
     } catch (err) {
-      // 429 → retry avec backoff, puis cascade
+      // 429 → attente puis retry, puis cascade
       if (isRateLimitError(err)) {
         if (attempt >= MAX_RETRIES) {
-          if (this._nextModel()) return this._generate(channelId, userText, context, 0);
-          this._blockedUntil = Date.now() + 60_000;
-          logger.error('[AI] Cascade épuisée. Pause 60s.');
-          return '⏳ Trop de demandes d\'un coup. Réessaie dans une minute.';
+          if (this._nextModel()) {
+            return this._generate(channelId, userText, context, 0);
+          }
+          const pause = 60_000;
+          this._blockedUntil = Date.now() + pause;
+          logger.error('[AI] Cascade épuisée. Pause ' + (pause / 1000) + 's.');
+          return '⏳ Je suis en surchauffe. Réessaie dans une minute.';
         }
         const wait = parseRetryAfter(err.message) ?? backoffMs(attempt);
-        logger.warn('[AI] 429 (' + MODEL_CASCADE[this._modelIndex] + '), retry dans ' + Math.round(wait / 1000) + 's (essai ' + (attempt + 1) + '/' + MAX_RETRIES + ')');
+        logger.warn('[AI] 429 (' + MODEL_CASCADE[this._modelIndex] + '), attente ' + Math.round(wait / 1000) + 's (essai ' + (attempt + 1) + '/' + (MAX_RETRIES + 1) + ')');
         await new Promise(r => setTimeout(r, wait));
         return this._generate(channelId, userText, context, attempt + 1);
       }
 
-      // 404 / modèle indisponible → cascade immédiate
+      // Modèle indisponible → cascade immédiate
       if (isModelUnavailableError(err)) {
         if (this._nextModel()) return this._generate(channelId, userText, context, 0);
-        logger.error('[AI] Aucun modèle disponible.');
+        logger.error('[AI] Aucun modèle disponible dans la cascade.');
         return null;
       }
 
-      // Autre erreur
       logger.error('[AI] Erreur (' + MODEL_CASCADE[this._modelIndex] + ') : ' + err.message);
       const fallbacks = [
         'Mon cerveau lag. Réessaie dans 2 secondes.',

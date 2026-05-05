@@ -114,12 +114,6 @@ module.exports = {
       const config = require('../../../config');
       const WebSearchService = require('../../services/WebSearchService');
 
-      const geminiOk = AIService.enabled;
-      const searchBackend = process.env.GOOGLE_CSE_KEY
-        ? 'Google Custom Search ✅'
-        : process.env.SERP_API_KEY
-          ? 'SerpAPI ✅'
-          : 'DuckDuckGo (gratuit, limité) ⚠️';
 
       const aiChannel = config.channels.ai
         ? `<#${config.channels.ai}>`
@@ -128,7 +122,7 @@ module.exports = {
       const embed = embedBuilder.base(geminiOk ? 0x43B581 : 0xF04747)
         .setTitle('🤖 Statut du système IA')
         .addFields(
-          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (cascade : 2.5-flash → 1.5-flash-8b → 1.5-flash)' : '❌ Désactivé (clé manquante)', inline: true },
+          { name: 'Gemini (réponses)',  value: geminiOk ? '✅ Actif (gemini-2.5-flash — 6 RPM free tier)' : '❌ Désactivé (clé manquante)', inline: true },
           { name: 'Recherche web',      value: searchBackend,                                                               inline: true },
           { name: 'Salon IA dédié',     value: aiChannel,                                                                   inline: false },
           { name: 'Triggers actifs',    value: '• Mention directe\n• Réponse à un message du bot\n• Messages dans le salon dédié', inline: false },
