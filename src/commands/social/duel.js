@@ -3,7 +3,8 @@ const XPService = require('../../services/XPService');
 const BadgeRepository = require('../../database/BadgeRepository');
 const UserRepository = require('../../database/UserRepository'); // BUG FIX: import manquant pour incrementDuelWins
 const embedBuilder = require('../../utils/embedBuilder');
-const randomResponses = require('../../utils/randomResponses');
+const randomResponses    = require('../../utils/randomResponses');
+const MissionRepository  = require('../../database/MissionRepository');
 const config = require('../../../config');
 
 const CHOICES = ['🪨 Pierre', '📄 Feuille', '✂️ Ciseaux'];
@@ -95,11 +96,19 @@ module.exports = {
       loser = challenger;
     }
 
+    // Toujours incrémenter duel_played (égalité ou pas)
+    if (!winner) {
+      await MissionRepository.progress(challenger.id, 'duel_played');
+      await MissionRepository.progress(target.id, 'duel_played');
+    }
     if (winner) {
       const xp = config.xp.winDuel;
       await XPService.addXP(winner.id, winner.username, xp, interaction.guild);
 
       // BUG FIX: badge fighter (1er duel) + champion (10 duels) maintenant correctement gérés
+      await MissionRepository.progress(winner.id, 'duel_won');
+      await MissionRepository.progress(loser.id, 'duel_played');
+      await MissionRepository.progress(winner.id, 'duel_played');
       await BadgeRepository.award(winner.id, 'fighter');
       const updatedWinner = await UserRepository.incrementDuelWins(winner.id);
       const duelWins = updatedWinner?.duelWins || 0;

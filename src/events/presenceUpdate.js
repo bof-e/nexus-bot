@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js');
 const UserRepository = require('../database/UserRepository');
 const GameRepository = require('../database/GameRepository');
+const MissionRepository = require('../database/MissionRepository');
 const XPService = require('../services/XPService');
 const randomResponses = require('../utils/randomResponses');
 const config = require('../../config');
@@ -96,7 +97,8 @@ module.exports = {
           config.xp.maxPerHourPlaying
         );
         if (xpEarned > 0) {
-          const result = await XPService.addXP(user.id, user.username, xpEarned, guild);
+          const result = await MissionRepository.progress(user.id, 'game_minutes', Math.floor(sessionMinutes));
+    await XPService.addXP(user.id, user.username, xpEarned, guild);
           await _handleXPEvents(result, user, channel);
         }
 

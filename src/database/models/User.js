@@ -10,7 +10,11 @@ const userSchema = new mongoose.Schema({
   voteCount: { type: Number, default: 0 },
   duelWins:  { type: Number, default: 0 }, // BUG FIX: champ manquant pour badge champion
   notifications: { type: Boolean, default: true },
-  createdAt: { type: Number, default: () => Date.now() }
+  coins:         { type: Number, default: 0 },
+  warnCount:     { type: Number, default: 0 },
+  mutedUntil:    { type: Number, default: 0 },
+  reputation:    { type: Number, default: 0 },
+  createdAt:     { type: Number, default: () => Date.now() }
 });
 
 userSchema.index({ xp: -1 });

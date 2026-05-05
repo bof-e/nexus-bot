@@ -69,6 +69,36 @@ class UserRepository {
     );
   }
 
+  async addCoins(discordId, amount) {
+    const user = await User.findOneAndUpdate(
+      { discordId },
+      { $inc: { coins: amount } },
+      { new: true }
+    );
+    return user?.coins ?? 0;
+  }
+
+  async spendCoins(discordId, amount) {
+    const user = await User.findOne({ discordId });
+    if (!user || (user.coins ?? 0) < amount) return { success: false, balance: user?.coins ?? 0 };
+    const updated = await User.findOneAndUpdate(
+      { discordId, coins: { $gte: amount } },
+      { $inc: { coins: -amount } },
+      { new: true }
+    );
+    if (!updated) return { success: false, balance: user.coins };
+    return { success: true, balance: updated.coins };
+  }
+
+  async addReputation(discordId, amount = 1) {
+    const user = await User.findOneAndUpdate(
+      { discordId },
+      { $inc: { reputation: amount } },
+      { new: true, upsert: true }
+    );
+    return user?.reputation ?? 0;
+  }
+
   async topByXP(limit = 10) {
     return User.find().sort({ xp: -1 }).limit(limit);
   }

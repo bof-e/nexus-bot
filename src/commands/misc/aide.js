@@ -48,6 +48,8 @@ module.exports = {
             '`/notif on/off` — Activer/désactiver les notifications de présence',
             '`/event start/stop` — Lancer/arrêter un événement XP x2',
             '`/ai salon/reset/statut` — Gérer le système IA',
+            '`/warn add/list/clear` — Avertissements progressifs (auto-mute)',
+            '`/autopost status/recap/rss/notif/rappel` — Activer/désactiver les messages automatiques',
           ].join('\n'),
         },
         {

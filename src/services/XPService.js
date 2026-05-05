@@ -1,4 +1,5 @@
-const UserRepository = require('../database/UserRepository');
+const UserRepository     = require('../database/UserRepository');
+const MissionRepository  = require('../database/MissionRepository');
 const BadgeRepository = require('../database/BadgeRepository');
 const { levelFromXP, rankName } = require('../utils/levelCalc');
 const config = require('../../config');
@@ -11,7 +12,17 @@ class XPService {
   async addXP(discordId, username, amount, guild = null) {
     const user = await UserRepository.findOrCreate(discordId, username);
     const oldLevel = levelFromXP(user.xp);
-    const multiplier = parseFloat(await UserRepository.getSetting('xp_multiplier') || '1');
+    // Vérifier boost personnel actif (acheté en boutique)
+    let multiplier = parseFloat(await UserRepository.getSetting('xp_multiplier') || '1');
+    const boostRaw = await UserRepository.getSetting('xp_boost_' + discordId);
+    if (boostRaw) {
+      const boost = JSON.parse(boostRaw);
+      if (boost.expiry > Date.now()) {
+        multiplier = Math.max(multiplier, boost.multiplier);
+      } else {
+        await UserRepository.setSetting('xp_boost_' + discordId, '');
+      }
+    }
     const finalAmount = Math.round(amount * multiplier);
     const newXP = await UserRepository.addXP(discordId, finalAmount);
     const newLevel = levelFromXP(newXP);
@@ -35,7 +46,11 @@ class XPService {
       }
     }
 
-    return { xp: newXP, level: newLevel, gained: finalAmount, events };
+    // Coins : 1 coin par 5 XP gagné
+    const coinsEarned = Math.floor(finalAmount / 5);
+    if (coinsEarned > 0) await UserRepository.addCoins(discordId, coinsEarned);
+
+    return { xp: newXP, level: newLevel, gained: finalAmount, coinsEarned, events };
   }
 
   async _handleRoleReward(discordId, level, guild) {
@@ -94,6 +109,15 @@ class XPService {
       newBadges.push(catalog['addict']);
     }
 
+    // Missions
+    const missionResults = await MissionRepository.progress(discordId, 'daily');
+    for (const r of missionResults.filter(r => r.completed)) {
+      await UserRepository.addXP(discordId, r.mission.xp);
+      await UserRepository.addCoins(discordId, r.mission.coins);
+      newBadges.push({ emoji: '🎯', name: r.mission.name, desc: r.mission.desc });
+    }
+    if (newStreak >= 7) await MissionRepository.progress(discordId, 'streak_7');
+
     return { success: true, xp: total, streak: newStreak, newBadges };
   }
 
@@ -107,6 +131,7 @@ class XPService {
     if (now - lastMessageXP < cooldownMs) return null;
 
     await UserRepository.updateLastMessageXP(discordId, now);
+    await MissionRepository.progress(discordId, 'message');
     return this.addXP(discordId, username, config.xp.firstMessageDay);
   }
 

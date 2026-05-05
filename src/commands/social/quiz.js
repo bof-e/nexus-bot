@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const XPService = require('../../services/XPService');
+const MissionRepository = require('../../database/MissionRepository');
 const embedBuilder = require('../../utils/embedBuilder');
 
 const QUESTIONS = [

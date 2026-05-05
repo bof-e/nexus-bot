@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const MissionRepository = require('../database/MissionRepository');
 const RSSService = require('./RSSService');
 const GameRepository = require('../database/GameRepository');
 const UserRepository = require('../database/UserRepository');
@@ -20,7 +21,10 @@ class CronService {
     cron.schedule('0 0 * * *', () => this._sendTopGames(client));
 
     // Vérification RSS toutes les heures
-    cron.schedule('0 * * * *', () => RSSService.checkAll(client));
+    cron.schedule('0 * * * *', async () => {
+      const rssEnabled = (await UserRepository.getSetting('rss_enabled')) !== '0';
+      if (rssEnabled) RSSService.checkAll(client);
+    });
 
     // Nettoyage des sondages expirés toutes les 5 minutes
     cron.schedule('*/5 * * * *', () => this._closeExpiredPolls(client));
@@ -32,6 +36,8 @@ class CronService {
   }
 
   async _sendRecap(client, hours) {
+    const recapEnabled = (await UserRepository.getSetting('recap_enabled')) !== '0';
+    if (!recapEnabled) return;
     const channelId = config.channels.recap;
     if (!channelId) return;
     try {
