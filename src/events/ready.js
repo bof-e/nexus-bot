@@ -6,7 +6,7 @@ const logger = require('../utils/logger');
 
 const UserRepository = require('../database/UserRepository');
 module.exports = {
-  name: 'ready',
+  name: 'clientReady',
   once: true,
   async execute(client) {
     logger.info(`✅ Nexus connecté en tant que ${client.user.tag}`);
