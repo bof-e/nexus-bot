@@ -78,7 +78,7 @@ module.exports = {
     const game     = presence?.activities?.find(a => a.type === 0)?.name || null;
 
     const context = {
-      username:   message.author.username,
+      username:   message.member?.displayName ?? message.author.displayName,
       serverName: message.guild.name,
       game,
     };
