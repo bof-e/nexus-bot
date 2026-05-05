@@ -14,6 +14,5 @@ const aiConversationSchema = new mongoose.Schema({
 
 // TTL : MongoDB supprime automatiquement l'historique après 2h d'inactivité.
 aiConversationSchema.index({ updatedAt: 1 }, { expireAfterSeconds: 7200 });
-aiConversationSchema.index({ channelId: 1 });
 
 module.exports = mongoose.model('AIConversation', aiConversationSchema);
