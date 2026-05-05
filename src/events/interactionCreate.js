@@ -1,4 +1,7 @@
-const embedBuilder = require('../utils/embedBuilder');
+const embedBuilder        = require('../utils/embedBuilder');
+const { MessageFlags }    = require('discord.js');
+const lfgCommand          = require('../commands/social/lfg');
+const suggestionCommand   = require('../commands/social/suggestion');
 const CooldownManager = require('../services/CooldownManager');
 const config = require('../../config');
 const logger = require('../utils/logger');
@@ -6,6 +9,13 @@ const logger = require('../utils/logger');
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
+    // ── Boutons ──────────────────────────────────────────────────────────
+    if (interaction.isButton()) {
+      const id = interaction.customId;
+      if (id.startsWith('lfg_'))  return lfgCommand.handleButton(interaction);
+      if (id.startsWith('sugg_')) return suggestionCommand.handleButton(interaction);
+      return;
+    }
     if (!interaction.isChatInputCommand()) return;
 
     const command = client.commands?.get(interaction.commandName);

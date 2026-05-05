@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const MissionRepository = require('../database/MissionRepository');
+const LFGRepository     = require('../database/LFGRepository');
 const RSSService = require('./RSSService');
 const GameRepository = require('../database/GameRepository');
 const UserRepository = require('../database/UserRepository');
@@ -31,6 +32,9 @@ class CronService {
 
     // Multiplicateur XP temporaire (reset à minuit)
     cron.schedule('0 0 * * *', () => UserRepository.setSetting('xp_multiplier', '1'));
+
+    // Nettoyage LFG expirés toutes les 10 minutes
+    cron.schedule('*/10 * * * *', () => this._closeExpiredLFG(client));
 
     logger.info('[Cron] Toutes les tâches planifiées ont démarré');
   }
@@ -85,6 +89,30 @@ class CronService {
       logger.info('[Cron] Top jeux envoyé');
     } catch (e) {
       logger.error(`[Cron] Erreur top jeux : ${e.message}`);
+    }
+  }
+
+  async _closeExpiredLFG(client) {
+    try {
+      const expired = await LFGRepository.getExpired();
+      if (!expired.length) return;
+      const ids = expired.map(p => p._id);
+      await LFGRepository.closeMany(ids);
+      // Mettre à jour les messages Discord
+      for (const post of expired) {
+        if (!post.messageId || !post.channelId) continue;
+        try {
+          const ch  = await client.channels.fetch(post.channelId).catch(() => null);
+          const msg = await ch?.messages.fetch(post.messageId).catch(() => null);
+          if (msg) {
+            const embed = msg.embeds[0];
+            if (embed) await msg.edit({ components: [] }); // Retirer les boutons
+          }
+        } catch {}
+      }
+      logger.info('[Cron] ' + expired.length + ' LFG expirés fermés');
+    } catch (e) {
+      logger.warn('[Cron] Erreur nettoyage LFG : ' + e.message);
     }
   }
 

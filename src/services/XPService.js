@@ -1,5 +1,6 @@
 const UserRepository     = require('../database/UserRepository');
 const MissionRepository  = require('../database/MissionRepository');
+const ClanRepository     = require('../database/ClanRepository');
 const BadgeRepository = require('../database/BadgeRepository');
 const { levelFromXP, rankName } = require('../utils/levelCalc');
 const config = require('../../config');
@@ -45,6 +46,12 @@ class XPService {
         if (awarded) events.push({ type: 'badge', badge: catalog[lvlBadgeKey] });
       }
     }
+
+    // XP Clan : contribution au clan si l'utilisateur en a un
+    try {
+      const clan = await ClanRepository.findByMember(discordId);
+      if (clan) await ClanRepository.addXP(clan._id, finalAmount);
+    } catch {}
 
     // Coins : 1 coin par 5 XP gagné
     const coinsEarned = Math.floor(finalAmount / 5);
