@@ -4,7 +4,8 @@ const BadgeRepository = require('../../database/BadgeRepository');
 const UserRepository = require('../../database/UserRepository'); // BUG FIX: import manquant pour incrementDuelWins
 const embedBuilder = require('../../utils/embedBuilder');
 const randomResponses    = require('../../utils/randomResponses');
-const MissionRepository  = require('../../database/MissionRepository');
+const MissionRepository    = require('../../database/MissionRepository');
+const ShadowBadgeService   = require('../../services/ShadowBadgeService');
 const config = require('../../../config');
 
 const CHOICES = ['🪨 Pierre', '📄 Feuille', '✂️ Ciseaux'];
@@ -108,6 +109,7 @@ module.exports = {
       // BUG FIX: badge fighter (1er duel) + champion (10 duels) maintenant correctement gérés
       await MissionRepository.progress(winner.id, 'duel_won');
       await MissionRepository.progress(loser.id, 'duel_played');
+      const shadowResult = await ShadowBadgeService.onDuelLoss(loser.id);
       await MissionRepository.progress(winner.id, 'duel_played');
       await BadgeRepository.award(winner.id, 'fighter');
       const updatedWinner = await UserRepository.incrementDuelWins(winner.id);

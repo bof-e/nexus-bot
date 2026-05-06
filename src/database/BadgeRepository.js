@@ -14,6 +14,38 @@ const BADGE_CATALOG = {
   // Duels
   fighter:      { key: 'fighter',      name: 'Combattant',    emoji: '⚔️', desc: 'Premier duel gagné' },
   champion:     { key: 'champion',     name: 'Champion',      emoji: '🏆', desc: '10 duels gagnés' },
+  // ── Badges Shadow (cachés jusqu'à déblocage) ────────────────────────
+  shadow_ghost: {
+    key: 'shadow_ghost',   name: '👻 Le Fantôme',        emoji: '👻',
+    desc: "Absent 7 jours puis retour brutal avec l'IA",
+    shadow: true,
+    hint: '...',
+  },
+  shadow_loser: {
+    key: 'shadow_loser',   name: '💀 Skill Issue Certifié', emoji: '💀',
+    desc: "Perdre 5 duels d'affilée en moins de 10 minutes",
+    shadow: true,
+    hint: '...',
+  },
+  shadow_insomniac: {
+    key: 'shadow_insomniac', name: '🌙 Insomniaque Certifié', emoji: '🌙',
+    desc: "Parler à l'IA entre 3h et 5h du matin — 3 nuits consécutives",
+    shadow: true,
+    hint: '...',
+  },
+  shadow_whale: {
+    key: 'shadow_whale',   name: '🐋 Baleine',             emoji: '🐋',
+    desc: 'Dépenser 2000 coins en boutique en une journée',
+    shadow: true,
+    hint: '...',
+  },
+  shadow_contrarian: {
+    key: 'shadow_contrarian', name: '🗿 Le Contre',         emoji: '🗿',
+    desc: 'Voter contre toutes les suggestions en une journée (min 5)',
+    shadow: true,
+    hint: '...',
+  },
+
   // Niveaux
   lvl5:         { key: 'lvl5',         name: 'Rookie',        emoji: '🌱', desc: 'Niveau 5 atteint' },
   lvl15:        { key: 'lvl15',        name: 'Vétéran',       emoji: '⚔️', desc: 'Niveau 15 atteint' },
@@ -48,7 +80,22 @@ class BadgeRepository {
     }
   }
 
-  getCatalog() { return BADGE_CATALOG; }
+  getCatalog() {
+    // Filtrer les badges shadow non encore débloqués globalement
+    return Object.fromEntries(
+      Object.entries(BADGE_CATALOG).filter(([, b]) => !b.shadow)
+    );
+  }
+
+  getCatalogFull()   { return BADGE_CATALOG; } // pour vérifications internes
+  getShadowCatalog() { return Object.fromEntries(Object.entries(BADGE_CATALOG).filter(([, b]) => b.shadow)); }
+
+  async getUnlockedShadows() {
+    const Badge    = require('./models/Badge');
+    const shadowKeys = Object.keys(BADGE_CATALOG).filter(k => BADGE_CATALOG[k].shadow);
+    const found = await Badge.distinct('badgeKey', { badgeKey: { $in: shadowKeys } });
+    return found.map(k => BADGE_CATALOG[k]).filter(Boolean);
+  }
 }
 
 module.exports = new BadgeRepository();

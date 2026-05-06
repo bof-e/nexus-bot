@@ -37,9 +37,9 @@ module.exports = {
       .addStringOption(o => o.setName('idee').setDescription('Ta suggestion').setRequired(true).setMaxLength(500))
     )
     .addSubcommand(s => s.setName('liste').setDescription('Voir les dernières suggestions'))
-    // ✅ FIX : setDefaultMemberPermissions retiré du subcommand (méthode inexistante à ce niveau)
     .addSubcommand(s => s.setName('traiter')
       .setDescription('Approuver ou rejeter une suggestion (Admin)')
+      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
       .addStringOption(o => o.setName('id').setDescription('ID de la suggestion').setRequired(true))
       .addStringOption(o => o.setName('decision').setDescription('Décision').setRequired(true)
         .addChoices({ name: '✅ Approuver', value: 'approved' }, { name: '❌ Rejeter', value: 'rejected' }))
@@ -54,12 +54,14 @@ module.exports = {
       const content = interaction.options.getString('idee');
       const sugg    = await SuggestionRepository.create(interaction.user.id, content);
 
+      // Poster dans le canal de suggestions si configuré
       const channelId = await UserRepository.getSetting('suggestions_channel') || config.channels.updates;
+      let msg = null;
       if (channelId) {
         try {
           const ch = await interaction.client.channels.fetch(channelId).catch(() => null);
           if (ch?.isTextBased()) {
-            const msg = await ch.send({ embeds: [suggEmbed(sugg)], components: [suggRow(sugg._id.toString(), 'pending')] });
+            msg = await ch.send({ embeds: [suggEmbed(sugg)], components: [suggRow(sugg._id.toString(), 'pending')] });
             await SuggestionRepository.setMessage(sugg._id, msg.id, channelId);
           }
         } catch {}
@@ -75,7 +77,7 @@ module.exports = {
         return interaction.editReply({ embeds: [embedBuilder.error('Aucune suggestion', 'Pas encore de suggestion. Sois le premier avec `/suggestion ajouter` !')] });
       }
       const lines = suggestions.map(s => {
-        const score  = s.upvotes.length - s.downvotes.length;
+        const score = s.upvotes.length - s.downvotes.length;
         const status = { pending: '⏳', approved: '✅', rejected: '❌' }[s.status];
         return `${status} **${s.content.slice(0, 60)}${s.content.length > 60 ? '…' : ''}**\n┗ <@${s.discordId}> · 👍${s.upvotes.length} 👎${s.downvotes.length} · score **${score > 0 ? '+' : ''}${score}**`;
       });
@@ -85,14 +87,6 @@ module.exports = {
     }
 
     if (sub === 'traiter') {
-      // ✅ FIX : vérification manuelle de la permission ManageGuild
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        return interaction.reply({
-          embeds: [embedBuilder.error('Permission refusée', '🔒 Tu dois avoir la permission **Gérer le serveur** pour traiter une suggestion.')],
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const id       = interaction.options.getString('id');
       const decision = interaction.options.getString('decision');
@@ -101,6 +95,7 @@ module.exports = {
       const sugg = await SuggestionRepository.setStatus(id, decision, note);
       if (!sugg) return interaction.editReply({ embeds: [embedBuilder.error('Introuvable', 'Suggestion non trouvée.')] });
 
+      // Mettre à jour le message original
       if (sugg.messageId && sugg.channelId) {
         try {
           const ch  = await interaction.client.channels.fetch(sugg.channelId).catch(() => null);
@@ -122,6 +117,7 @@ module.exports = {
     const sugg = await SuggestionRepository.vote(id, interaction.user.id, action === 'up' ? 'up' : 'down');
     if (!sugg) return interaction.editReply({ embeds: [embedBuilder.error('Erreur', 'Suggestion introuvable.')] });
 
+    // Màj embed
     try { await interaction.message.edit({ embeds: [suggEmbed(sugg)], components: [suggRow(id, sugg.status)] }); } catch {}
 
     return interaction.editReply({ content: action === 'up' ? '👍 Vote enregistré !' : '👎 Vote enregistré !', embeds: [] });

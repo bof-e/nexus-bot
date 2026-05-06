@@ -12,9 +12,9 @@ module.exports = {
       .setDescription('Classement d\'une saison passée')
       .addIntegerOption(o => o.setName('numero').setDescription('Numéro de saison').setRequired(true).setMinValue(1))
     )
-    // ✅ FIX : setDefaultMemberPermissions n'existe PAS sur un subcommand builder
     .addSubcommand(s => s.setName('terminer')
       .setDescription('Terminer la saison et reset les XP (Admin)')
+      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     ),
 
   async execute(interaction) {
@@ -25,10 +25,12 @@ module.exports = {
     if (sub === 'info') {
       await interaction.deferReply();
       const stat = await SeasonRepository.getUserStat(season, interaction.user.id);
+      // Snapshot pour avoir le rang actuel
       await SeasonRepository.snapshot(season);
       const updatedStat = await SeasonRepository.getUserStat(season, interaction.user.id);
       const all = await SeasonRepository.getLeaderboard(season, 500);
       const rank = all.findIndex(s => s.discordId === interaction.user.id) + 1;
+
       return interaction.editReply({
         embeds: [embedBuilder.base(0xf1c40f)
           .setTitle(`🏆 Saison ${season} en cours`)
@@ -74,24 +76,18 @@ module.exports = {
     }
 
     if (sub === 'terminer') {
-      // ✅ FIX : vérification manuelle de la permission Administrator
-      if (!interaction.memberPermissions?.has(PermissionFlagsBits.Administrator)) {
-        return interaction.reply({
-          embeds: [embedBuilder.error('Permission refusée', '🔒 Seuls les administrateurs peuvent terminer une saison.')],
-          flags: MessageFlags.Ephemeral,
-        });
-      }
-
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      const podium    = await SeasonRepository.endSeason(season);
+      const podium = await SeasonRepository.endSeason(season);
       const newSeason = season + 1;
+
       const podiumText = podium.map((e, i) => {
         const medals = ['🥇','🥈','🥉'];
         return `${medals[i]} **${e.username}** — ${e.xp.toLocaleString()} XP`;
       }).join('\n');
 
+      // Annoncer dans le canal de recap si configuré
       try {
-        const config = require('../../../../config');
+        const config  = require('../../../../config');
         const ch = await interaction.client.channels.fetch(config.channels.recap).catch(() => null);
         if (ch?.isTextBased()) {
           await ch.send({

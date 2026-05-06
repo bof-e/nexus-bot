@@ -1,7 +1,9 @@
 const XPService  = require('../services/XPService');
 const AIService  = require('../services/AIService');
 const config     = require('../../config');
-const logger     = require('../utils/logger');
+const logger             = require('../utils/logger');
+const ShadowBadgeService    = require('../services/ShadowBadgeService');
+const EmojiStockRepository  = require('../database/EmojiStockRepository');
 
 // Nettoie le texte : retire les mentions, les balises de réponse Discord, les espaces superflus.
 function cleanContent(message, clientId) {
@@ -40,6 +42,12 @@ module.exports = {
   async execute(message, client) {
     if (message.author.bot || !message.guild) return;
 
+    // ── Tracking emojis pour la Bourse ───────────────────────────────
+    const emojiMatches = message.content.matchAll(/<a?:([\w]+):(\d+)>/g);
+    for (const m of emojiMatches) {
+      EmojiStockRepository.recordUsage(m[2], m[1]).catch(() => {});
+    }
+
     // ── XP sur message (inchangé) ─────────────────────────────────────
     try {
       await XPService.tryAddMessageXP(message.author.id, message.author.username);
@@ -67,6 +75,10 @@ module.exports = {
     // Rate-limit par canal
     if (!AIService.canRespond(message.channel.id)) return;
 
+    // Shadow badge : fantôme (retour après absence)
+    await ShadowBadgeService.onReturnAfterSilence(message.author.id).catch(() => {});
+    ShadowBadgeService.updateLastSeen(message.author.id);
+
     const userText = cleanContent(message, client.user.id);
     if (!userText || userText.length < 1) return;
 
@@ -78,12 +90,13 @@ module.exports = {
     const game     = presence?.activities?.find(a => a.type === 0)?.name || null;
 
     const context = {
-      username:   message.member?.nickname ?? message.author.globalName ?? message.author.username,
+      username:   message.author.username,
       serverName: message.guild.name,
       game,
     };
 
     const reply = await AIService.respond(message.channel.id, userText, context);
+    if (reply) await ShadowBadgeService.onAIInteraction(message.author.id).catch(() => {});
     if (!reply) return;
 
     // Répondre en thread du message original pour garder la lisibilité

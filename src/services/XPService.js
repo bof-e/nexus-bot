@@ -1,6 +1,8 @@
 const UserRepository     = require('../database/UserRepository');
 const MissionRepository  = require('../database/MissionRepository');
 const ClanRepository     = require('../database/ClanRepository');
+const ContractRepository = require('../database/ContractRepository');
+const UserRepository2    = require('../database/UserRepository');
 const BadgeRepository = require('../database/BadgeRepository');
 const { levelFromXP, rankName } = require('../utils/levelCalc');
 const config = require('../../config');
@@ -46,6 +48,22 @@ class XPService {
         if (awarded) events.push({ type: 'badge', badge: catalog[lvlBadgeKey] });
       }
     }
+
+    // Contrats mercenaires : contribuer à l'objectif XP si enrôlé
+    try {
+      const activeContracts = await ContractRepository.getByMercenary(discordId);
+      for (const contract of activeContracts) {
+        const updated = await ContractRepository.contributeXP(contract._id, finalAmount);
+        if (updated?.completed) {
+          // Distribuer la récompense équitablement entre mercenaires
+          const share = Math.floor(contract.reward / Math.max(1, contract.mercenaries.length));
+          for (const mId of contract.mercenaries) {
+            await UserRepository2.addCoins(mId, share);
+          }
+          logger.info('[Contract] Contrat ' + contract._id + ' complété ! ' + share + ' coins/mercenaire');
+        }
+      }
+    } catch {}
 
     // XP Clan : contribution au clan si l'utilisateur en a un
     try {
