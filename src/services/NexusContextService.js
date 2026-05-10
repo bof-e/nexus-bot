@@ -7,7 +7,8 @@
 const UserRepository   = require('../database/UserRepository');
 const ClanRepository   = require('../database/ClanRepository');
 const BadgeRepository  = require('../database/BadgeRepository');
-const MissionRepository= require('../database/MissionRepository');
+const MissionRepository = require('../database/MissionRepository');
+const AniListRepository = require('../database/AniListRepository');
 const SeasonRepository = require('../database/SeasonRepository');
 const logger           = require('../utils/logger');
 
@@ -179,6 +180,37 @@ class NexusContextService {
           return clans.map((c, i) =>
             `${i + 1}. **[${c.tag}] ${c.name}** — ${c.xpTotal.toLocaleString()} XP · ${c.members.length} membres`
           ).join('\n') || 'Aucun clan créé.';
+        }
+
+        case 'profile': {
+          if (!discordId) return 'ID Discord non disponible.';
+          const user = await UserRepository.findOrCreate(discordId, 'Utilisateur');
+          if (!user) return 'Profil introuvable.';
+
+          const { levelFromXP, xpForNextLevel } = require('../utils/levelCalc');
+          const level    = levelFromXP(user.xp || 0);
+          const nextXP   = xpForNextLevel(user.xp || 0);
+          const xp       = user.xp || 0;
+
+          // Badges
+          const Badge    = require('../database/models/Badge');
+          const badgeDocs = await Badge.find({ discordId });
+          const catalog  = BadgeRepository.getCatalogFull();
+          const badgeList = badgeDocs.map(b => {
+            const def = catalog[b.badgeKey];
+            return def ? def.emoji + ' ' + def.name : b.badgeKey;
+          });
+
+          // AniList
+          const aniEntry = await AniListRepository.findByDiscordId(discordId).catch(() => null);
+
+          let result = `**Profil de <@${discordId}>**\n`;
+          result += `🏅 Niveau **${level}** · ${xp.toLocaleString()} XP (${nextXP.toLocaleString()} pour le prochain)\n`;
+          result += `🪙 **${(user.coins ?? 0).toLocaleString()} coins** · ⭐ **${user.reputation ?? 0} réputation**\n`;
+          result += `🔥 Streak daily : **${user.dailyStreak ?? 0} jour${(user.dailyStreak ?? 0) > 1 ? 's' : ''}**\n`;
+          if (badgeList.length) result += `🎖 Badges : ${badgeList.join(', ')}\n`;
+          if (aniEntry) result += `🎌 AniList : **${aniEntry.anilistUsername}**\n`;
+          return result.trim();
         }
 
         case 'missions': {
