@@ -97,8 +97,8 @@ module.exports = {
           config.xp.maxPerHourPlaying
         );
         if (xpEarned > 0) {
-          const result = await MissionRepository.progress(user.id, 'game_minutes', Math.floor(sessionMinutes));
-    await XPService.addXP(user.id, user.username, xpEarned, guild);
+          const result = await MissionRepository.progress(user.id, 'game_minutes', Math.floor(duration / 60));
+          await XPService.addXP(user.id, user.username, xpEarned, guild);
           await _handleXPEvents(result, user, channel);
         }
 
