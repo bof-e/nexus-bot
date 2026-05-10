@@ -130,7 +130,7 @@ module.exports = {
           effectMsg = `+${item.amount} réputation ! Tu es maintenant à **${newRep}** ⭐`;
         }
         else if (item.type === 'daily_reset') {
-          await UserRepository.updateDailyStreak(interaction.user.id, null, 0);
+          await UserRepository.updateDailyStreak(interaction.user.id, 0, 0);
           effectMsg = 'Ton cooldown /daily a été réinitialisé. Bonne pioche !';
         }
 

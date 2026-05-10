@@ -89,7 +89,7 @@ module.exports = {
 
       // Annoncer dans le canal de recap si configuré
       try {
-        const config  = require('../../../../config');
+        const config  = require('../../../config');
         const ch = await interaction.client.channels.fetch(config.channels.recap).catch(() => null);
         if (ch?.isTextBased()) {
           await ch.send({

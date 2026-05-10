@@ -25,7 +25,7 @@ class LFGRepository {
   async close(postId, ownerId) {
     const post = await LFGPost.findById(postId);
     if (!post) return null;
-    if (post.ownerId !== ownerId) return { error: 'not_owner' };
+    if (post.discordId !== ownerId) return { error: 'not_owner' };
     post.closed = true;
     await post.save();
     return post;

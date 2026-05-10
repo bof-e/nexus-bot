@@ -2,6 +2,7 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const EmojiStockRepository = require('../../database/EmojiStockRepository');
 const UserRepository       = require('../../database/UserRepository');
 const embedBuilder         = require('../../utils/embedBuilder');
+const EmojiPosition        = require('../../database/models/EmojiPosition');
 
 function priceArrow(history, current) {
   if (!history?.length) return '➡️';
@@ -97,7 +98,7 @@ module.exports = {
       const emojiId = customMatch ? customMatch[2] : raw;
       let shares    = interaction.options.getInteger('parts');
       if (!shares) {
-        const pos = await require('../../database/models/EmojiPosition').findOne({ discordId: interaction.user.id, emojiId });
+        const pos = await EmojiPosition.findOne({ discordId: interaction.user.id, emojiId });
         shares = pos?.shares ?? 0;
       }
       if (!shares) return interaction.editReply({ embeds: [embedBuilder.error('Bourse', 'Tu n\'as aucune part de cet emoji.')] });

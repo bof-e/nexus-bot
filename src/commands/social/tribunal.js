@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const AIService      = require('../../services/AIService');
-const WarnRepository = require('../../database/WarnRepository');
 const UserRepository = require('../../database/UserRepository');
 const embedBuilder   = require('../../utils/embedBuilder');
 
