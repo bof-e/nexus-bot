@@ -8,6 +8,5 @@ const clanSchema = new mongoose.Schema({
   xpTotal:    { type: Number, default: 0 },
   createdAt:  { type: Date, default: Date.now },
 });
-clanSchema.index({ name: 1 });
 clanSchema.index({ members: 1 });
 module.exports = mongoose.model('Clan', clanSchema);

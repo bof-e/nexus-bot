@@ -39,7 +39,6 @@ module.exports = {
     .addSubcommand(s => s.setName('liste').setDescription('Voir les dernières suggestions'))
     .addSubcommand(s => s.setName('traiter')
       .setDescription('Approuver ou rejeter une suggestion (Admin)')
-      .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
       .addStringOption(o => o.setName('id').setDescription('ID de la suggestion').setRequired(true))
       .addStringOption(o => o.setName('decision').setDescription('Décision').setRequired(true)
         .addChoices({ name: '✅ Approuver', value: 'approved' }, { name: '❌ Rejeter', value: 'rejected' }))
@@ -88,6 +87,9 @@ module.exports = {
 
     if (sub === 'traiter') {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      if (!interaction.memberPermissions?.has('ManageGuild')) {
+        return interaction.editReply({ embeds: [embedBuilder.error('Permission refusée', 'Cette commande est réservée aux modérateurs.')] });
+      }
       const id       = interaction.options.getString('id');
       const decision = interaction.options.getString('decision');
       const note     = interaction.options.getString('note') || '';

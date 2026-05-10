@@ -14,7 +14,6 @@ module.exports = {
     )
     .addSubcommand(s => s.setName('terminer')
       .setDescription('Terminer la saison et reset les XP (Admin)')
-      .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     ),
 
   async execute(interaction) {
@@ -77,6 +76,9 @@ module.exports = {
 
     if (sub === 'terminer') {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      if (!interaction.memberPermissions?.has('Administrator')) {
+        return interaction.editReply({ embeds: [embedBuilder.error('Permission refusée', 'Cette commande est réservée aux administrateurs.')] });
+      }
       const podium = await SeasonRepository.endSeason(season);
       const newSeason = season + 1;
 
