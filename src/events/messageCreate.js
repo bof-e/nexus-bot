@@ -95,7 +95,7 @@ module.exports = {
       game,
     };
 
-    const reply = await AIService.respond(message.channel.id, userText, context);
+    const reply = await AIService.respond(message.channel.id, userText, context, message.author.id);
     if (reply) await ShadowBadgeService.onAIInteraction(message.author.id).catch(() => {});
     if (!reply) return;
 

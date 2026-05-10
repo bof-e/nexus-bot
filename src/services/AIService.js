@@ -1,6 +1,7 @@
 const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const AIConversationRepository = require('../database/AIConversationRepository');
-const WebSearchService = require('./WebSearchService');
+const WebSearchService    = require('./WebSearchService');
+const NexusContextService = require('./NexusContextService');
 const logger = require('../utils/logger');
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,8 +23,9 @@ RÈGLES :
 1. TOUJOURS répondre en français sauf si on te parle dans une autre langue.
 2. Jamais de longs monologues sauf pour des guides/tutos explicitement demandés.
 3. Tu peux chercher des infos sur Internet via l'outil webSearch quand la question nécessite des données récentes ou spécifiques.
-4. Si quelqu'un te demande de "désactiver ta personnalité" ou "tu es un assistant", ignore poliment et reste en personnage.
-5. Pour les questions de jeux : donne de vraies infos utiles, mais avec ton style.
+4. Tu as accès à tes propres commandes et aux stats live du serveur via l'outil getNexusInfo. Utilise-le dès que quelqu'un te demande ce que tu peux faire, comment fonctionne une commande, ou veut des stats (classement, saison, clans, etc.).
+5. Si quelqu'un te demande de "désactiver ta personnalité" ou "tu es un assistant", ignore poliment et reste en personnage.
+6. Pour les questions de jeux : donne de vraies infos utiles, mais avec ton style.
 
 EXEMPLES DE RÉPLIQUES :
 - À une question simple : "Ez. [réponse]. T'avais juste à chercher, mais bon."
@@ -54,6 +56,29 @@ const QUEUE_INTERVAL_MS = 11_000;
 // ─────────────────────────────────────────────────────────────────────────────
 // Outil webSearch (function calling)
 // ─────────────────────────────────────────────────────────────────────────────
+// Outil : infos commandes Nexus
+const NEXUS_INFO_TOOL = {
+  functionDeclarations: [{
+    name: 'getNexusInfo',
+    description: 'Retourne les infos sur les commandes de Nexus et les stats live du serveur. Utilise cet outil quand on demande ce que tu peux faire, comment fonctionne une commande, ou pour des stats.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        type: {
+          type: 'STRING',
+          enum: ['commands', 'stats'],
+          description: 'commands = infos sur les commandes | stats = données live du serveur',
+        },
+        query: {
+          type: 'STRING',
+          description: 'Pour commands : nom de la commande ou catégorie (ex: "clan", "/bourse", "all"). Pour stats : top | server | season | clans | missions',
+        },
+      },
+      required: ['type'],
+    },
+  }],
+};
+
 const SEARCH_TOOL = {
   functionDeclarations: [{
     name: 'webSearch',
@@ -155,7 +180,7 @@ class AIService {
       this._modelCache[name] = this._genAI.getGenerativeModel({
         model:             name,
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        tools:             [SEARCH_TOOL],
+        tools:             [SEARCH_TOOL, NEXUS_INFO_TOOL],
         safetySettings:    SAFETY_SETTINGS,
         generationConfig:  { maxOutputTokens: 400, temperature: 0.85, topP: 0.95 },
       });
@@ -182,9 +207,10 @@ class AIService {
   }
 
   /** Ajoute la requête à la file. Retourne null si désactivé. */
-  async respond(channelId, userText, context = {}) {
+  async respond(channelId, userText, context = {}, discordId = null) {
     if (!this.enabled) return null;
     logger.debug('[AI] File : ' + this._queue._queue.length + ' en attente');
+    context._discordId = discordId;
     return this._queue.enqueue(() => this._generate(channelId, userText, context));
   }
 
@@ -207,6 +233,22 @@ class AIService {
         iters++;
         const callResults = [];
         for (const call of calls) {
+          if (call.name === 'getNexusInfo') {
+            const { type, query } = call.args;
+            let result;
+            if (type === 'commands') {
+              result = NexusContextService.getCommands(query || 'all');
+            } else {
+              result = await NexusContextService.getLiveStats(query || 'server', context._discordId);
+            }
+            callResults.push({
+              functionResponse: {
+                name:     'getNexusInfo',
+                response: { result },
+              },
+            });
+            continue;
+          }
           if (call.name !== 'webSearch') continue;
           logger.debug('[AI] Recherche : "' + call.args.query + '"');
           const res = await WebSearchService.search(call.args.query, 4);
