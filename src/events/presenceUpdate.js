@@ -31,7 +31,6 @@ module.exports = {
   name: 'presenceUpdate',
   async execute(oldPresence, newPresence, client) {
     const notificationsEnabled = (await UserRepository.getSetting('notifications_enabled')) !== '0';
-    if (!notificationsEnabled) return;
 
     const user = newPresence?.user || oldPresence?.user;
     if (!user || user.bot) return;
@@ -40,12 +39,15 @@ module.exports = {
     const newGame = newPresence?.activities?.find(a => a.type === 0);
 
     const channelId = config.channels.gaming;
-    if (!channelId) return;
 
-    const channel = await client.channels.fetch(channelId).catch(() => null);
-    if (!channel?.isTextBased()) {
-      logger.warn('[Presence] Canal GCHANNEL_ID introuvable');
-      return;
+    // Fetch du canal uniquement si les notifications sont activées
+    let channel = null;
+    if (notificationsEnabled && channelId) {
+      channel = await client.channels.fetch(channelId).catch(() => null);
+      if (!channel?.isTextBased()) {
+        logger.warn('[Presence] Canal GCHANNEL_ID introuvable');
+        channel = null;
+      }
     }
 
     const guild = newPresence?.guild || oldPresence?.guild;
@@ -68,7 +70,7 @@ module.exports = {
           .setThumbnail(user.displayAvatarURL({ size: 64 }))
           .setTimestamp();
 
-        await channel.send({ embeds: [embed] });
+        if (notificationsEnabled && channel) await channel.send({ embeds: [embed] });
 
       } else if (oldGame && !newGame) {
         if (_isDuplicate(`${user.id}:stop:${oldGame.name}`)) return;
@@ -90,20 +92,21 @@ module.exports = {
           .setThumbnail(user.displayAvatarURL({ size: 64 }))
           .setTimestamp();
 
-        await channel.send({ embeds: [embed] });
+        if (notificationsEnabled && channel) await channel.send({ embeds: [embed] });
 
         const xpEarned = Math.min(
           Math.floor((duration / 60) * config.xp.perMinutePlaying),
           config.xp.maxPerHourPlaying
         );
         if (xpEarned > 0) {
-          const result = await MissionRepository.progress(user.id, 'game_minutes', Math.floor(duration / 60));
-          await XPService.addXP(user.id, user.username, xpEarned, guild);
+          await MissionRepository.progress(user.id, 'game_minutes', Math.floor(duration / 60));
+          const result = await XPService.addXP(user.id, user.username, xpEarned, guild);
           await _handleXPEvents(result, user, channel);
         }
 
         const newBadges = await XPService.checkGameBadges(user.id, totalForGame);
         for (const badge of newBadges) {
+          if (!notificationsEnabled) continue;
           const badgeEmbed = new EmbedBuilder()
             .setColor(0xEF9F27)
             .setDescription(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`)
@@ -130,7 +133,7 @@ module.exports = {
           .setThumbnail(user.displayAvatarURL({ size: 64 }))
           .setTimestamp();
 
-        await channel.send({ embeds: [embed] });
+        if (notificationsEnabled && channel) await channel.send({ embeds: [embed] });
       }
     } catch (e) {
       logger.error(`[Presence] Erreur : ${e.message}`);

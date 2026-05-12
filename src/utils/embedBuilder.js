@@ -112,7 +112,6 @@ function pollResult(question, options, reactions) {
 
 function recap(hours, gameData) {
   const entries = Object.entries(gameData)
-    .filter(([, d]) => d.lastPlayed >= Date.now() - hours * 3600000)
     .sort((a, b) => b[1].count - a[1].count)
     .slice(0, 8);
 

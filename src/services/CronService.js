@@ -116,7 +116,6 @@ class CronService {
         await ContractRepository.cancel(c._id);
         // Rembourser si non complété
         if (!c.completed) {
-          const UserRepository = require('../database/UserRepository');
           await UserRepository.addCoins(c.mercenaries[0] || c.clanId, c.reward).catch(() => {});
           logger.info('[Cron] Contrat expiré remboursé : ' + c._id);
         }

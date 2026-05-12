@@ -39,7 +39,7 @@ class GameRepository {
   /** Temps total par jeu pour un utilisateur. */
   async getUserGameStats(discordId) {
     const results = await GameSession.aggregate([
-      { $match: { discordId, sessionStart: null } },
+      { $match: { discordId, sessionStart: null, duration: { $gt: 0 } } },
       { $group: { _id: "$gameName", total_seconds: { $sum: "$duration" } } },
       { $sort: { total_seconds: -1 } }
     ]);
@@ -50,15 +50,38 @@ class GameRepository {
     }, {});
   }
 
-  /** Stats globales pour le récap. */
+  /** Stats globales pour le récap — fenêtre réelle sur GameSession. */
   async getRecentGameStats(hours) {
-    const threshold = Date.now() - hours * 3600000;
-    const stats = await GameStat.find({
-      lastPlayed: { $gte: threshold }
-    }).sort({ sessionCount: -1 });
+    const threshold = Date.now() - hours * 3600_000;
 
-    return stats.reduce((acc, r) => {
-      acc[r.gameName] = { count: r.sessionCount, lastPlayed: r.lastPlayed };
+    // On agrège les sessions TERMINÉES dans la fenêtre (playedAt = moment de fin)
+    // + les sessions ACTIVES démarrées dans la fenêtre (sessionStart != null)
+    const results = await GameSession.aggregate([
+      {
+        $match: {
+          $or: [
+            { sessionStart: null,    duration: { $gt: 0 }, playedAt: { $gte: threshold } },
+            { sessionStart: { $ne: null, $gte: threshold } },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id:          '$gameName',
+          count:        { $sum: 1 },
+          totalSeconds: { $sum: '$duration' },
+          lastPlayed:   { $max: '$playedAt' },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    return results.reduce((acc, r) => {
+      acc[r._id] = {
+        count:        r.count,
+        totalSeconds: r.totalSeconds,
+        lastPlayed:   r.lastPlayed ?? Date.now(),
+      };
       return acc;
     }, {});
   }

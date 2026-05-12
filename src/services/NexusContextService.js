@@ -189,7 +189,7 @@ class NexusContextService {
 
           const { levelFromXP, xpForNextLevel } = require('../utils/levelCalc');
           const level    = levelFromXP(user.xp || 0);
-          const nextXP   = xpForNextLevel(user.xp || 0);
+          const nextXP   = xpForNextLevel(level);
           const xp       = user.xp || 0;
 
           // Badges

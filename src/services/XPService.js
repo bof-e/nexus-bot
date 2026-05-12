@@ -121,7 +121,7 @@ class XPService {
     const total = base + streakBonus;
 
     await UserRepository.updateDailyStreak(discordId, newStreak, now);
-    await UserRepository.addXP(discordId, total);
+    const xpResult = await this.addXP(discordId, username, total);
 
     // Badge streak
     const newBadges = [];
@@ -142,7 +142,7 @@ class XPService {
     }
     if (newStreak >= 7) await MissionRepository.progress(discordId, 'streak_7');
 
-    return { success: true, xp: total, streak: newStreak, newBadges };
+    return { success: true, xp: xpResult.gained, streak: newStreak, newBadges, events: xpResult.events };
   }
 
   /** XP pour message (cooldown anti-spam). */

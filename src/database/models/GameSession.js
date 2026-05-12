@@ -10,5 +10,7 @@ const gameSessionSchema = new mongoose.Schema({
 
 gameSessionSchema.index({ discordId: 1 });
 gameSessionSchema.index({ gameName: 1 });
+gameSessionSchema.index({ playedAt: 1 });
+gameSessionSchema.index({ sessionStart: 1 });
 
 module.exports = mongoose.model('GameSession', gameSessionSchema);

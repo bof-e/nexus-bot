@@ -39,6 +39,22 @@ module.exports = {
       });
     }
 
+    // Level-up events depuis la pipeline XP complète
+    if (result.events?.length) {
+      const levelUps = result.events.filter(e => e.type === 'levelUp');
+      if (levelUps.length) {
+        const lvl = levelUps[levelUps.length - 1];
+        embed.addFields({ name: '⬆️ Niveau supérieur !', value: `Tu es passé niveau **${lvl.level}** — *${lvl.rank}*`, inline: false });
+      }
+      const badgeEvents = result.events.filter(e => e.type === 'badge');
+      if (badgeEvents.length) {
+        const existing = embed.data.fields?.find(f => f.name === '🏅 Nouveaux badges');
+        const lines = badgeEvents.map(e => `${e.badge.emoji} **${e.badge.name}** — ${e.badge.desc}`);
+        if (existing) existing.value += '\n' + lines.join('\n');
+        else embed.addFields({ name: '🏅 Nouveaux badges', value: lines.join('\n') });
+      }
+    }
+
     await interaction.reply({ embeds: [embed] });
   },
 };

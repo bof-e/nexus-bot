@@ -54,6 +54,7 @@ module.exports = {
         collector.stop('answered');
 
         const xp = 20;
+        await MissionRepository.progress(msg.author.id, 'quiz_answered');
         await XPService.addXP(msg.author.id, msg.author.username, xp, interaction.guild);
         await msg.reply({
           embeds: [embedBuilder.success(

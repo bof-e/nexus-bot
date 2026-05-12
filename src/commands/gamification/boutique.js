@@ -137,6 +137,13 @@ module.exports = {
         // Enregistrement de l'achat
         if (item.once) await Purchase.create({ discordId: interaction.user.id, itemKey });
 
+        // Shadow badge Baleine : tracker les coins dépensés aujourd'hui
+        const today = new Date().toISOString().slice(0, 10);
+        const spendKey = interaction.user.id + ':' + today;
+        const todaySpend = (_dailySpend.get(spendKey) || 0) + item.price;
+        _dailySpend.set(spendKey, todaySpend);
+        await ShadowBadgeService.onPurchase(interaction.user.id, todaySpend).catch(() => {});
+
         logger.info(`[Boutique] ${interaction.user.tag} a acheté ${itemKey}`);
       } catch (e) {
         // Remboursement si l'effet a échoué
