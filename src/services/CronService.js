@@ -3,6 +3,7 @@ const MissionRepository = require('../database/MissionRepository');
 const LFGRepository          = require('../database/LFGRepository');
 const EmojiStockRepository   = require('../database/EmojiStockRepository');
 const ContractRepository     = require('../database/ContractRepository');
+const Clan                   = require('../database/models/Clan');
 const RSSService = require('./RSSService');
 const GameRepository = require('../database/GameRepository');
 const UserRepository = require('../database/UserRepository');
@@ -43,6 +44,9 @@ class CronService {
 
     // Nettoyage LFG expirés toutes les 10 minutes
     cron.schedule('*/10 * * * *', () => this._closeExpiredLFG(client));
+
+    // Nettoyage missions expirées chaque lundi à 3h30
+    cron.schedule('30 3 * * 1', () => MissionRepository.cleanup());
 
     logger.info('[Cron] Toutes les tâches planifiées ont démarré');
   }
@@ -114,10 +118,17 @@ class CronService {
       const expired = await ContractRepository.getExpired();
       for (const c of expired) {
         await ContractRepository.cancel(c._id);
-        // Rembourser si non complété
+        // BUG FIX: rembourser le clan commanditaire (pas seulement le 1er mercenaire)
+        // Le reward appartient au clan qui a posté le contrat, pas aux mercenaires
         if (!c.completed) {
-          await UserRepository.addCoins(c.mercenaries[0] || c.clanId, c.reward).catch(() => {});
-          logger.info('[Cron] Contrat expiré remboursé : ' + c._id);
+          // Rembourser le chef du clan (clanId est un ObjectId MongoDB, pas un discordId)
+          const clan = await Clan.findById(c.clanId).catch(() => null);
+          if (clan?.ownerId) {
+            await UserRepository.addCoins(clan.ownerId, c.reward).catch(() => {});
+            logger.info('[Cron] Contrat expiré remboursé à ' + clan.ownerId + ' (' + c.reward + ' coins) : ' + c._id);
+          } else {
+            logger.warn('[Cron] Clan introuvable pour remboursement contrat : ' + c._id);
+          }
         }
       }
     } catch (e) {
@@ -150,7 +161,14 @@ class CronService {
   }
 
   async _closeExpiredPolls(client) {
-    const expired = await PollRepository.getExpired();
+    // BUG FIX: envelopper dans try/catch global pour éviter un crash silencieux
+    let expired;
+    try {
+      expired = await PollRepository.getExpired();
+    } catch (e) {
+      logger.error('[Cron] Impossible de récupérer les sondages expirés : ' + e.message);
+      return;
+    }
     for (const poll of expired) {
       try {
         const channel = await client.channels.fetch(poll.channelId).catch(() => null);
@@ -158,10 +176,10 @@ class CronService {
           await PollRepository.delete(poll.messageId); 
           continue; 
         }
-
+        // BUG FIX: message.fetch() après messages.fetch() était redondant et pouvait
+        // écraser les réactions déjà chargées depuis le cache
         const message = await channel.messages.fetch(poll.messageId).catch(() => null);
         if (message) {
-          await message.fetch();
           const embed = embedBuilder.pollResult(poll.question, poll.options, message.reactions.cache);
           await message.edit({ embeds: [embed] });
         }

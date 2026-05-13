@@ -7,6 +7,7 @@ const purchaseSchema = new mongoose.Schema({
   boughtAt:  { type: Date,   default: Date.now },
 }, { timestamps: false });
 
-purchaseSchema.index({ discordId: 1, itemKey: 1 });
+// BUG FIX: l'index doit être unique pour éviter les achats en double en cas de race condition
+purchaseSchema.index({ discordId: 1, itemKey: 1 }, { unique: true });
 
 module.exports = mongoose.model('Purchase', purchaseSchema);

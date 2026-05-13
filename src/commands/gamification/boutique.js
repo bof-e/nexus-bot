@@ -130,7 +130,10 @@ module.exports = {
           effectMsg = `+${item.amount} réputation ! Tu es maintenant à **${newRep}** ⭐`;
         }
         else if (item.type === 'daily_reset') {
-          await UserRepository.updateDailyStreak(interaction.user.id, 0, 0);
+          // BUG FIX: updateDailyStreak(id, 0, 0) remettait le streak à 0 ET lastDaily à 0,
+          // ce qui réinitialisait aussi le streak. On ne doit réinitialiser que lastDaily.
+          const user = await UserRepository.findOrCreate(interaction.user.id, interaction.user.username);
+          await UserRepository.updateDailyStreak(interaction.user.id, user.dailyStreak ?? 0, 0);
           effectMsg = 'Ton cooldown /daily a été réinitialisé. Bonne pioche !';
         }
 
@@ -144,7 +147,7 @@ module.exports = {
         _dailySpend.set(spendKey, todaySpend);
         await ShadowBadgeService.onPurchase(interaction.user.id, todaySpend).catch(() => {});
 
-        logger.info(`[Boutique] ${interaction.user.tag} a acheté ${itemKey}`);
+        logger.info(`[Boutique] ${interaction.user.username} a acheté ${itemKey}`);
       } catch (e) {
         // Remboursement si l'effet a échoué
         await UserRepository.addCoins(interaction.user.id, item.price);
@@ -152,6 +155,7 @@ module.exports = {
         return interaction.editReply({ embeds: [embedBuilder.error('Erreur', 'L\'achat a échoué, tu as été remboursé.')] });
       }
 
+      // result.balance = solde après débit (findOneAndUpdate avec new:true)
       return interaction.editReply({
         embeds: [embedBuilder.success(
           `${item.name} acheté !`,

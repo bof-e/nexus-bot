@@ -94,10 +94,11 @@ module.exports = {
 
         if (notificationsEnabled && channel) await channel.send({ embeds: [embed] });
 
-        const xpEarned = Math.min(
-          Math.floor((duration / 60) * config.xp.perMinutePlaying),
-          config.xp.maxPerHourPlaying
-        );
+        // XP proportionnel : cap = maxPerHourPlaying × nombre d'heures (au plafond)
+        // Ex : session 2h → max 120 XP, session 10min → max 60 XP
+        const rawXP    = Math.floor((duration / 60) * config.xp.perMinutePlaying);
+        const hoursCap = Math.max(1, Math.ceil(duration / 3600));
+        const xpEarned = Math.min(rawXP, config.xp.maxPerHourPlaying * hoursCap);
         if (xpEarned > 0) {
           await MissionRepository.progress(user.id, 'game_minutes', Math.floor(duration / 60));
           const result = await XPService.addXP(user.id, user.username, xpEarned, guild);
@@ -105,21 +106,35 @@ module.exports = {
         }
 
         const newBadges = await XPService.checkGameBadges(user.id, totalForGame);
-        for (const badge of newBadges) {
-          if (!notificationsEnabled) continue;
-          const badgeEmbed = new EmbedBuilder()
-            .setColor(0xEF9F27)
-            .setDescription(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`)
-            .setThumbnail(user.displayAvatarURL({ size: 64 }))
-            .setTimestamp();
-          await channel.send({ embeds: [badgeEmbed] });
+        // BUG FIX: vérifier que channel est non-null avant d'envoyer les badges
+        if (notificationsEnabled && channel) {
+          for (const badge of newBadges) {
+            const badgeEmbed = new EmbedBuilder()
+              .setColor(0xEF9F27)
+              .setDescription(`🏅 **${user.username}** a débloqué le badge **${badge.emoji} ${badge.name}** ! *${badge.desc}*`)
+              .setThumbnail(user.displayAvatarURL({ size: 64 }))
+              .setTimestamp();
+            await channel.send({ embeds: [badgeEmbed] }).catch(err => logger.warn('[Presence] Envoi badge impossible : ' + err.message));
+          }
         }
 
       } else if (oldGame && newGame && oldGame.name !== newGame.name) {
         if (_isDuplicate(`${user.id}:switch:${oldGame.name}:${newGame.name}`)) return;
 
-        await GameRepository.endSession(user.id, oldGame.name);
+        // Terminer l'ancienne session ET calculer l'XP (même logique que stop)
+        const switchDuration = await GameRepository.endSession(user.id, oldGame.name);
         await GameRepository.startSession(user.id, newGame.name);
+
+        // XP pour la session de l'ancien jeu
+        const switchXP = Math.min(
+          Math.floor((switchDuration / 60) * config.xp.perMinutePlaying),
+          Math.max(config.xp.maxPerHourPlaying, Math.ceil(switchDuration / 3600) * config.xp.maxPerHourPlaying)
+        );
+        if (switchXP > 0) {
+          await MissionRepository.progress(user.id, 'game_minutes', Math.floor(switchDuration / 60));
+          const switchResult = await XPService.addXP(user.id, user.username, switchXP, guild);
+          await _handleXPEvents(switchResult, user, channel);
+        }
 
         const description = randomResponses.get('switchGame', null, {
           user: user.username,
@@ -142,6 +157,8 @@ module.exports = {
 };
 
 async function _handleXPEvents(result, user, channel) {
+  // BUG FIX: ne pas tenter d'envoyer si channel est null (notifications désactivées ou canal introuvable)
+  if (!channel) return;
   for (const event of result.events) {
     if (event.type === 'levelUp') {
       const msg = randomResponses.get('levelUp', null, {
@@ -154,7 +171,7 @@ async function _handleXPEvents(result, user, channel) {
         .setDescription(msg)
         .setThumbnail(user.displayAvatarURL({ size: 64 }))
         .setTimestamp();
-      await channel.send({ embeds: [embed] });
+      await channel.send({ embeds: [embed] }).catch(err => logger.warn('[Presence] Envoi level-up impossible : ' + err.message));
     }
     if (event.type === 'badge') {
       const embed = new EmbedBuilder()
@@ -162,7 +179,7 @@ async function _handleXPEvents(result, user, channel) {
         .setDescription(`🏅 <@${user.id}> débloque le badge **${event.badge.emoji} ${event.badge.name}** ! *${event.badge.desc}*`)
         .setThumbnail(user.displayAvatarURL({ size: 64 }))
         .setTimestamp();
-      await channel.send({ embeds: [embed] });
+      await channel.send({ embeds: [embed] }).catch(err => logger.warn('[Presence] Envoi badge XP impossible : ' + err.message));
     }
   }
 }

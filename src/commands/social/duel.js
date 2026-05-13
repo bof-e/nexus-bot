@@ -105,19 +105,20 @@ module.exports = {
     if (winner) {
       const xp = config.xp.winDuel;
       await XPService.addXP(winner.id, winner.username, xp, interaction.guild);
+      // XP de consolation pour le perdant (encourage la participation)
+      await XPService.addXP(loser.id, loser.username, Math.floor(xp / 3), interaction.guild);
 
-      // BUG FIX: badge fighter (1er duel) + champion (10 duels) maintenant correctement gérés
+      // BUG FIX: badge fighter (1er duel) + champion (10 duels) correctement gérés
       await MissionRepository.progress(winner.id, 'duel_won');
-      await MissionRepository.progress(loser.id, 'duel_played');
-      const shadowResult = await ShadowBadgeService.onDuelLoss(loser.id);
       await MissionRepository.progress(winner.id, 'duel_played');
+      await MissionRepository.progress(loser.id, 'duel_played');
+      await ShadowBadgeService.onDuelLoss(loser.id);
       await BadgeRepository.award(winner.id, 'fighter');
       const updatedWinner = await UserRepository.incrementDuelWins(winner.id);
       const duelWins = updatedWinner?.duelWins || 0;
       if (duelWins >= 10) await BadgeRepository.award(winner.id, 'champion');
 
       const resultEmbed = embedBuilder.duelResult(winner, loser, CHOICES[winner.id === challenger.id ? cChoice : tChoice], CHOICES[winner.id === challenger.id ? tChoice : cChoice], xp);
-      // BUG FIX: resultText était déclaré avec let mais jamais assigné dans ce bloc avant l'editReply
       const winText = randomResponses.get('duelWin', null, { winner: winner.username, loser: loser.username, xp });
       await interaction.editReply({ content: winText, embeds: [resultEmbed] });
     } else {

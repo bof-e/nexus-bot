@@ -150,7 +150,7 @@ module.exports = {
     if (sub === 'recap') {
       const on = action === 'on';
       await UserRepository.setSetting('recap_enabled', on ? '1' : '0');
-      logger.info('[Autopost] Récap ' + (on ? 'activé' : 'désactivé') + ' par ' + interaction.user.tag);
+      logger.info('[Autopost] Récap ' + (on ? 'activé' : 'désactivé') + ' par ' + interaction.user.username);
       return interaction.editReply({
         embeds: [on
           ? embedBuilder.success('Récap XP activé', '📊 Le classement XP sera posté automatiquement toutes les 6h.')
@@ -162,7 +162,7 @@ module.exports = {
     if (sub === 'rss') {
       const on = action === 'on';
       await UserRepository.setSetting('rss_enabled', on ? '1' : '0');
-      logger.info('[Autopost] RSS ' + (on ? 'activé' : 'désactivé') + ' par ' + interaction.user.tag);
+      logger.info('[Autopost] RSS ' + (on ? 'activé' : 'désactivé') + ' par ' + interaction.user.username);
       return interaction.editReply({
         embeds: [on
           ? embedBuilder.success('RSS activé', '📰 Les mises à jour de patch notes seront postées automatiquement.')
@@ -174,7 +174,7 @@ module.exports = {
     if (sub === 'notif') {
       const on = action === 'on';
       await UserRepository.setSetting('notifications_enabled', on ? '1' : '0');
-      logger.info('[Autopost] Notifs présence ' + (on ? 'activées' : 'désactivées') + ' par ' + interaction.user.tag);
+      logger.info('[Autopost] Notifs présence ' + (on ? 'activées' : 'désactivées') + ' par ' + interaction.user.username);
       return interaction.editReply({
         embeds: [on
           ? embedBuilder.success('Notifications activées', '🔔 Les membres verront quand quelqu\'un lance un jeu.')
@@ -193,7 +193,7 @@ module.exports = {
           expiresAt: Date.now() + 24 * 3600_000,
           message:   reminder?.message ?? 'Rappel : préparez-vous pour une session !',
         });
-        logger.info('[Autopost] Rappels activés par ' + interaction.user.tag);
+        logger.info('[Autopost] Rappels activés par ' + interaction.user.username);
         return interaction.editReply({
           embeds: [embedBuilder.success(
             'Rappels activés',
@@ -204,7 +204,7 @@ module.exports = {
         });
       } else {
         await ReminderRepository.update({ enabled: false, expiresAt: null });
-        logger.info('[Autopost] Rappels désactivés par ' + interaction.user.tag);
+        logger.info('[Autopost] Rappels désactivés par ' + interaction.user.username);
         return interaction.editReply({
           embeds: [embedBuilder.error('Rappels désactivés', '⏰ Les rappels automatiques sont maintenant off.')],
         });

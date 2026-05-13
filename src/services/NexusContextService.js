@@ -10,6 +10,7 @@ const BadgeRepository  = require('../database/BadgeRepository');
 const MissionRepository = require('../database/MissionRepository');
 const AniListRepository = require('../database/AniListRepository');
 const SeasonRepository = require('../database/SeasonRepository');
+const { levelFromXP }  = require('../utils/levelCalc');
 const logger           = require('../utils/logger');
 
 // ─── Catalogue des commandes (résumé compact pour le contexte IA) ────────────
@@ -151,7 +152,7 @@ class NexusContextService {
         case 'top': {
           const top = await UserRepository.topByXP(5);
           return top.map((u, i) =>
-            `${i + 1}. **${u.username}** — ${u.xp.toLocaleString()} XP (niveau ${u.level})`
+            `${i + 1}. **${u.username}** — ${u.xp.toLocaleString()} XP (niveau ${levelFromXP(u.xp)})`
           ).join('\n') || 'Aucun membre classé.';
         }
 

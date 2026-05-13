@@ -46,7 +46,8 @@ module.exports = {
         target.id, interaction.guild.id, raison, interaction.user.id
       );
 
-      logger.info(`[Warn] ${interaction.user.tag} → ${target.tag} (${count} warns) : ${raison}`);
+      // BUG FIX: .tag est déprécié dans discord.js v14, utiliser .username
+      logger.info(`[Warn] ${interaction.user.username} → ${target.username} (${count} warns) : ${raison}`);
 
       // Appliquer le mute Discord si sanction automatique
       if (sanction?.action === 'mute') {
@@ -109,7 +110,7 @@ module.exports = {
     // ── /warn clear ──────────────────────────────────────────────────────────
     if (sub === 'clear') {
       const deleted = await WarnRepository.clear(target.id, interaction.guild.id);
-      logger.info(`[Warn] ${interaction.user.tag} a effacé ${deleted} warns de ${target.tag}`);
+      logger.info(`[Warn] ${interaction.user.username} a effacé ${deleted} warns de ${target.username}`);
 
       return interaction.editReply({
         embeds: [embedBuilder.success(

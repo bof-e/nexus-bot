@@ -153,10 +153,40 @@ class MissionRepository {
     });
   }
 
-  /** Nettoie les progressions plus vieilles que 14 jours (à appeler depuis CronService). */
+  /** Nettoie les progressions expirées (quotidiennes ET hebdomadaires). */
   async cleanup() {
-    const cutoff = new Date(Date.now() - 14 * 24 * 3600_000).toISOString().slice(0, 10);
-    await MissionProgress.deleteMany({ periodKey: { $lt: cutoff } });
+    // Clés quotidiennes : format "2025-05-01" — comparaison alphabétique OK
+    const dailyCutoff = new Date(Date.now() - 14 * 24 * 3600_000)
+      .toISOString().slice(0, 10);
+
+    // Clés hebdomadaires : format "2025-W18" — comparaison alphabétique KO avec les dates
+    // On calcule les 2 dernières semaines et on exclut les clés encore valides
+    const validWeeks = new Set();
+    for (let i = 0; i < 2; i++) {
+      const d = new Date(Date.now() - i * 7 * 24 * 3600_000);
+      const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const week  = Math.ceil(((d - start) / 86400000 + start.getUTCDay() + 1) / 7);
+      validWeeks.add(`${d.getUTCFullYear()}-W${String(week).padStart(2, '0')}`);
+    }
+
+    // Supprimer les missions quotidiennes trop anciennes
+    const dailyDeleted = await MissionProgress.deleteMany({
+      periodKey: { $lt: dailyCutoff, $not: /^\d{4}-W/ },
+    });
+
+    // Supprimer les missions hebdomadaires NOT dans les 2 dernières semaines
+    const allWeeklyKeys = await MissionProgress.distinct('periodKey', {
+      periodKey: /^\d{4}-W/,
+    });
+    const staleWeekly = allWeeklyKeys.filter(k => !validWeeks.has(k));
+    let weeklyDeleted = { deletedCount: 0 };
+    if (staleWeekly.length) {
+      weeklyDeleted = await MissionProgress.deleteMany({
+        periodKey: { $in: staleWeekly },
+      });
+    }
+
+    return dailyDeleted.deletedCount + weeklyDeleted.deletedCount;
   }
 }
 

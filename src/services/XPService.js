@@ -18,11 +18,15 @@ class XPService {
     let multiplier = parseFloat(await UserRepository.getSetting('xp_multiplier') || '1');
     const boostRaw = await UserRepository.getSetting('xp_boost_' + discordId);
     if (boostRaw) {
-      const boost = JSON.parse(boostRaw);
-      if (boost.expiry > Date.now()) {
-        multiplier = Math.max(multiplier, boost.multiplier);
-      } else {
-        await UserRepository.setSetting('xp_boost_' + discordId, '');
+      try {
+        const boost = JSON.parse(boostRaw);
+        if (boost?.expiry > Date.now()) {
+          multiplier = Math.max(multiplier, boost.multiplier);
+        } else {
+          await UserRepository.setSetting('xp_boost_' + discordId, '');
+        }
+      } catch {
+        await UserRepository.setSetting('xp_boost_' + discordId, ''); // nettoyer valeur corrompue
       }
     }
     const finalAmount = Math.round(amount * multiplier);
@@ -34,17 +38,19 @@ class XPService {
     if (newLevel > oldLevel) {
       events.push({ type: 'levelUp', level: newLevel, rank: rankName(newLevel) });
 
-      // Attribution des rôles
+      // Attribution du rôle pour le niveau final atteint
       if (guild) {
         await this._handleRoleReward(discordId, newLevel, guild);
       }
 
-      // Badge de niveau
-      const lvlBadgeKey = `lvl${newLevel}`;
+      // Badges : vérifier CHAQUE niveau intermédiaire (ex: sauter de 2 à 5 → vérifier lvl3, lvl4, lvl5)
       const catalog = BadgeRepository.getCatalog();
-      if (catalog[lvlBadgeKey]) {
-        const awarded = await BadgeRepository.award(discordId, lvlBadgeKey);
-        if (awarded) events.push({ type: 'badge', badge: catalog[lvlBadgeKey] });
+      for (let lvl = oldLevel + 1; lvl <= newLevel; lvl++) {
+        const lvlBadgeKey = `lvl${lvl}`;
+        if (catalog[lvlBadgeKey]) {
+          const awarded = await BadgeRepository.award(discordId, lvlBadgeKey);
+          if (awarded) events.push({ type: 'badge', badge: catalog[lvlBadgeKey] });
+        }
       }
     }
 

@@ -50,8 +50,10 @@ module.exports = {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
       const id     = interaction.options.getString('id');
       const result = await ContractRepository.enlist(id, interaction.user.id);
-      if (result?.error === 'unavailable')     return interaction.editReply({ embeds: [embedBuilder.error('Contrat', 'Contrat indisponible ou expiré.')] });
+       if (result?.error === 'unavailable')     return interaction.editReply({ embeds: [embedBuilder.error('Contrat', 'Contrat indisponible ou expiré.')] });
       if (result?.error === 'already_enlisted') return interaction.editReply({ embeds: [embedBuilder.error('Contrat', 'Tu es déjà enrôlé dans ce contrat.')] });
+      // BUG FIX: gérer l'erreur own_clan (un chef ne peut pas être mercenaire de son propre clan)
+      if (result?.error === 'own_clan')         return interaction.editReply({ embeds: [embedBuilder.error('Contrat', 'Tu ne peux pas être mercenaire pour ton propre clan.')] });
       return interaction.editReply({ embeds: [embedBuilder.success('Enrôlé !', 'Tu es maintenant mercenaire pour **[' + result.contract.clanTag + '] ' + result.contract.clanName + '**.\nChaque XP que tu génères sur le serveur compte pour l\'objectif du contrat !')] });
     }
 

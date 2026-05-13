@@ -109,11 +109,21 @@ module.exports = {
       }
     }
 
-    // ── /ai statut ────────────────────────────────────────────────────
+    // ── /ai statut ────────────────────────────────────────────────
     if (sub === 'statut') {
       const config = require('../../../config');
       const WebSearchService = require('../../services/WebSearchService');
 
+      // BUG FIX: geminiOk et searchBackend n'étaient pas définis dans ce scope
+      const geminiOk = !!(config.ai?.geminiKey || process.env.GEMINI_API_KEY);
+      let searchBackend = '❌ Aucun (DuckDuckGo fallback)';
+      if (config.ai?.googleCseKey && config.ai?.googleCseId) {
+        searchBackend = '✅ Google Custom Search';
+      } else if (config.ai?.serpApiKey) {
+        searchBackend = '✅ SerpAPI';
+      } else {
+        searchBackend = '⚠️ DuckDuckGo (fallback gratuit, résultats limités)';
+      }
 
       const aiChannel = config.channels.ai
         ? `<#${config.channels.ai}>`

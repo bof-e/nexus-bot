@@ -1,8 +1,12 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const SuggestionRepository = require('../../database/SuggestionRepository');
 const UserRepository       = require('../../database/UserRepository');
+const ShadowBadgeService   = require('../../services/ShadowBadgeService');
 const embedBuilder         = require('../../utils/embedBuilder');
 const config               = require('../../../config');
+
+// Compteur de downvotes quotidiens par utilisateur (pour le badge shadow contrarian)
+const _dailyDownvotes = new Map();
 
 function suggEmbed(s) {
   const score = s.upvotes.length - s.downvotes.length;
@@ -87,7 +91,8 @@ module.exports = {
 
     if (sub === 'traiter') {
       await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      if (!interaction.memberPermissions?.has('ManageGuild')) {
+      // BUG FIX: has('ManageGuild') ne fonctionne pas — utiliser PermissionFlagsBits
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
         return interaction.editReply({ embeds: [embedBuilder.error('Permission refusée', 'Cette commande est réservée aux modérateurs.')] });
       }
       const id       = interaction.options.getString('id');
@@ -118,6 +123,15 @@ module.exports = {
 
     const sugg = await SuggestionRepository.vote(id, interaction.user.id, action === 'up' ? 'up' : 'down');
     if (!sugg) return interaction.editReply({ embeds: [embedBuilder.error('Erreur', 'Suggestion introuvable.')] });
+
+    // Shadow badge contrarian : tracker les downvotes quotidiens
+    if (action === 'down') {
+      const today = new Date().toISOString().slice(0, 10);
+      const key   = `${interaction.user.id}:${today}`;
+      const count = (_dailyDownvotes.get(key) || 0) + 1;
+      _dailyDownvotes.set(key, count);
+      await ShadowBadgeService.onSuggestionDownvote(interaction.user.id, count).catch(() => {});
+    }
 
     // Màj embed
     try { await interaction.message.edit({ embeds: [suggEmbed(sugg)], components: [suggRow(id, sugg.status)] }); } catch {}

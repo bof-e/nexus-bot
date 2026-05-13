@@ -67,21 +67,47 @@ Format : reste en personnage jusqu'au bout. Réponds en français.
       verdict = 'Le tribunal est en délibération… et le juge s\'est endormi. Revenez plus tard.';
     }
 
-    // Déterminer un "gagnant" symbolique en cherchant les noms dans le verdict
-    const mentionsPlaignant = (verdict.match(new RegExp(interaction.user.username, 'gi')) || []).length;
-    const mentionsDefendeur = (verdict.match(new RegExp(adversaire.username, 'gi')) || []).length;
-
+    // BUG FIX: l'heuristique basée sur les mentions était peu fiable et pouvait
+    // pénaliser le mauvais joueur. On cherche maintenant des mots-clés explicites
+    // ("tort", "raison", le nom du perdant) dans le verdict de l'IA.
     let winnerId  = null;
     let loserId   = null;
     let penaltyMsg = '';
 
-    if (mentionsPlaignant !== mentionsDefendeur) {
-      // Heuristique simple : celui le moins mentionné dans les reproches perd moins
-      const winnerGuess = verdict.toLowerCase().includes('raison') && verdict.toLowerCase().indexOf(interaction.user.username.toLowerCase()) < verdict.toLowerCase().indexOf('raison')
-        ? interaction.user.id : adversaire.id;
-      winnerId = winnerGuess;
-      loserId  = winnerGuess === interaction.user.id ? adversaire.id : interaction.user.id;
+    const verdictLower = verdict.toLowerCase();
+    const plaignantName = interaction.user.username.toLowerCase();
+    const defendeurName = adversaire.username.toLowerCase();
 
+    // Chercher qui a "tort" dans le verdict
+    const tortIdx    = verdictLower.indexOf('tort');
+    const raisonIdx  = verdictLower.indexOf('raison');
+    const perdantIdx = verdictLower.indexOf('perdant');
+
+    if (tortIdx !== -1) {
+      // Trouver quel joueur est mentionné le plus près de "tort"
+      const plaignantBeforeTort = verdictLower.lastIndexOf(plaignantName, tortIdx);
+      const defendeurBeforeTort = verdictLower.lastIndexOf(defendeurName, tortIdx);
+      if (plaignantBeforeTort > defendeurBeforeTort && plaignantBeforeTort !== -1) {
+        loserId  = interaction.user.id;
+        winnerId = adversaire.id;
+      } else if (defendeurBeforeTort > plaignantBeforeTort && defendeurBeforeTort !== -1) {
+        loserId  = adversaire.id;
+        winnerId = interaction.user.id;
+      }
+    } else if (raisonIdx !== -1) {
+      // Trouver qui a "raison"
+      const plaignantBeforeRaison = verdictLower.lastIndexOf(plaignantName, raisonIdx);
+      const defendeurBeforeRaison = verdictLower.lastIndexOf(defendeurName, raisonIdx);
+      if (plaignantBeforeRaison > defendeurBeforeRaison && plaignantBeforeRaison !== -1) {
+        winnerId = interaction.user.id;
+        loserId  = adversaire.id;
+      } else if (defendeurBeforeRaison > plaignantBeforeRaison && defendeurBeforeRaison !== -1) {
+        winnerId = adversaire.id;
+        loserId  = interaction.user.id;
+      }
+    }
+
+    if (winnerId && loserId) {
       // Amende symbolique de 50 coins du perdant vers le gagnant
       try {
         const result = await UserRepository.spendCoins(loserId, 50);

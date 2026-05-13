@@ -90,15 +90,22 @@ async function _updateTerritory(guild, channel, channelId) {
   }
 
   // Le clan dominant = celui avec le plus de membres
+  // BUG FIX: en cas d'égalité (tie), on conserve le clan déjà dominant plutôt que d'en choisir un arbitrairement
+  const prev = _voiceTracking.get(channelId);
   let dominant = null;
   let maxCount = 0;
   for (const [key, data] of clanCounts) {
-    if (data.count > maxCount) { maxCount = data.count; dominant = data.clan; }
+    if (data.count > maxCount) {
+      maxCount = data.count;
+      dominant = data.clan;
+    } else if (data.count === maxCount && prev && key === prev.clanId) {
+      // En cas d'égalité, favoriser le clan déjà en place
+      dominant = data.clan;
+    }
   }
   if (!dominant) return;
 
-  const prev = _voiceTracking.get(channelId);
-  const now  = Date.now();
+  const now = Date.now();
 
   if (prev && prev.clanId === dominant._id.toString()) {
     // Même clan — calculer les minutes écoulées et donner XP

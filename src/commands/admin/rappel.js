@@ -37,7 +37,7 @@ module.exports = {
         return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà activés.')], flags: MessageFlags.Ephemeral });
       }
       await ReminderRepository.update({ enabled: true, expiresAt: Date.now() + 24 * 3600000 });
-      logger.info(`[Rappel] Activé par ${interaction.user.tag}`);
+      logger.info(`[Rappel] Activé par ${interaction.user.username}`);
       return interaction.reply({ embeds: [embedBuilder.success('Rappels activés', `Message : "${reminder.message}"\nExpire dans 24h.`)] });
     }
 
@@ -46,14 +46,14 @@ module.exports = {
         return interaction.reply({ embeds: [embedBuilder.error('Rappels', 'Les rappels sont déjà désactivés.')], flags: MessageFlags.Ephemeral });
       }
       await ReminderRepository.update({ enabled: false, expiresAt: null });
-      logger.info(`[Rappel] Désactivé par ${interaction.user.tag}`);
+      logger.info(`[Rappel] Désactivé par ${interaction.user.username}`);
       return interaction.reply({ embeds: [embedBuilder.success('Rappels désactivés', 'Les rappels automatiques sont maintenant off.')] });
     }
 
     if (sub === 'set') {
       const newMsg = interaction.options.getString('message');
       await ReminderRepository.update({ message: newMsg });
-      logger.info(`[Rappel] Message mis à jour par ${interaction.user.tag}: "${newMsg}"`);
+      logger.info(`[Rappel] Message mis à jour par ${interaction.user.username}: "${newMsg}"`);
       return interaction.reply({ embeds: [embedBuilder.success('Message mis à jour', `Nouveau message de rappel :\n"${newMsg}"`)] });
     }
 

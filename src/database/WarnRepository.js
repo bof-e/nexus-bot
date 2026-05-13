@@ -15,13 +15,15 @@ class WarnRepository {
   async add(discordId, guildId, reason, moderatorId) {
     await Warning.create({ discordId, guildId, reason, moderator: moderatorId });
 
-    const user = await User.findOneAndUpdate(
+    // BUG FIX: utiliser le count réel depuis Warning plutôt que le compteur en cache
+    // (le compteur User.warnCount peut diverger si des warns sont supprimés directement)
+    const count = await Warning.countDocuments({ discordId, guildId });
+    await User.findOneAndUpdate(
       { discordId },
-      { $inc: { warnCount: 1 } },
-      { new: true, upsert: true }
+      { $set: { warnCount: count } },
+      { upsert: true }
     );
 
-    const count = user.warnCount;
     const sanction = THRESHOLDS[count] || null;
 
     if (sanction?.action === 'mute') {

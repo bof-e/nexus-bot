@@ -59,13 +59,16 @@ class EmojiStockRepository {
     const result = await UserRepository.spendCoins(discordId, cost);
     if (!result.success) return { success: false, error: 'insufficient_coins', balance: result.balance, cost };
 
-    const pos = await EmojiPosition.findOneAndUpdate(
+    // BUG FIX: $setOnInsert ne met à jour que si le doc est créé (upsert), pas si existant.
+    // On relit la position après upsert pour avoir les vraies valeurs.
+    await EmojiPosition.findOneAndUpdate(
       { discordId, emojiId },
       { $setOnInsert: { shares: 0, avgPrice: 0 } },
-      { upsert: true, new: true }
+      { upsert: true }
     );
-    const totalShares   = pos.shares + shares;
-    const newAvgPrice   = ((pos.shares * pos.avgPrice) + cost) / totalShares;
+    const pos = await EmojiPosition.findOne({ discordId, emojiId });
+    const totalShares   = (pos?.shares ?? 0) + shares;
+    const newAvgPrice   = (((pos?.shares ?? 0) * (pos?.avgPrice ?? 0)) + cost) / totalShares;
     await EmojiPosition.updateOne({ discordId, emojiId }, { shares: totalShares, avgPrice: Math.round(newAvgPrice) });
 
     return { success: true, cost, newBalance: result.balance, price: stock.price };
@@ -82,7 +85,12 @@ class EmojiStockRepository {
 
     const gained   = stock.price * shares;
     const newShares = pos.shares - shares;
-    await EmojiPosition.updateOne({ discordId, emojiId }, { shares: newShares });
+    if (newShares <= 0) {
+      // BUG FIX: supprimer la position quand toutes les parts sont vendues
+      await EmojiPosition.deleteOne({ discordId, emojiId });
+    } else {
+      await EmojiPosition.updateOne({ discordId, emojiId }, { shares: newShares });
+    }
     await UserRepository.addCoins(discordId, gained);
 
     return { success: true, gained, price: stock.price, profit: gained - (pos.avgPrice * shares) };
