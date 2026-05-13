@@ -90,6 +90,19 @@ class UserRepository {
     return { success: true, balance: updated.coins };
   }
 
+  async recordDuelWin(discordId) {
+    const user = await User.findOneAndUpdate(
+      { discordId },
+      { $inc: { duelWins: 1, duelStreak: 1 } },
+      { new: true, upsert: true }
+    );
+    return user?.duelStreak ?? 1;
+  }
+
+  async resetDuelStreak(discordId) {
+    await User.updateOne({ discordId }, { duelStreak: 0 });
+  }
+
   async addReputation(discordId, amount = 1) {
     const user = await User.findOneAndUpdate(
       { discordId },

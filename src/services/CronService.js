@@ -4,6 +4,7 @@ const LFGRepository          = require('../database/LFGRepository');
 const EmojiStockRepository   = require('../database/EmojiStockRepository');
 const ContractRepository     = require('../database/ContractRepository');
 const Clan                   = require('../database/models/Clan');
+const CooldownManager        = require('./CooldownManager');
 const RSSService = require('./RSSService');
 const GameRepository = require('../database/GameRepository');
 const UserRepository = require('../database/UserRepository');
@@ -44,6 +45,9 @@ class CronService {
 
     // Nettoyage LFG expirés toutes les 10 minutes
     cron.schedule('*/10 * * * *', () => this._closeExpiredLFG(client));
+
+    // Nettoyage du CooldownManager en mémoire toutes les heures
+    cron.schedule('0 * * * *', () => CooldownManager.cleanup());
 
     // Nettoyage missions expirées chaque lundi à 3h30
     cron.schedule('30 3 * * 1', () => MissionRepository.cleanup());

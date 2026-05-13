@@ -12,6 +12,8 @@ const userSchema = new mongoose.Schema({
   notifications: { type: Boolean, default: true },
   coins:         { type: Number, default: 0 },
   warnCount:     { type: Number, default: 0 },
+  duelStreak:    { type: Number, default: 0 },  // victoires consécutives en duel
+  duelWins:      { type: Number, default: 0 },  // total victoires
   mutedUntil:    { type: Number, default: 0 },
   reputation:    { type: Number, default: 0 },
   createdAt:     { type: Number, default: () => Date.now() }

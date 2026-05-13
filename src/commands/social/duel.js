@@ -109,7 +109,15 @@ module.exports = {
       await XPService.addXP(loser.id, loser.username, Math.floor(xp / 3), interaction.guild);
 
       // BUG FIX: badge fighter (1er duel) + champion (10 duels) correctement gérés
+      // Win streak
+      const streak = await UserRepository.recordDuelWin(winner.id);
+      await UserRepository.resetDuelStreak(loser.id);
       await MissionRepository.progress(winner.id, 'duel_won');
+
+      // Badge spécial : 5 victoires consécutives
+      if (streak >= 5) {
+        await BadgeRepository.award(winner.id, 'undefeated');
+      }
       await MissionRepository.progress(winner.id, 'duel_played');
       await MissionRepository.progress(loser.id, 'duel_played');
       await ShadowBadgeService.onDuelLoss(loser.id);

@@ -14,6 +14,12 @@ const BADGE_CATALOG = {
   // Duels
   fighter:      { key: 'fighter',      name: 'Combattant',    emoji: '⚔️', desc: 'Premier duel gagné' },
   champion:     { key: 'champion',     name: 'Champion',      emoji: '🏆', desc: '10 duels gagnés' },
+  undefeated: {
+    key: 'undefeated', name: '🔥 Imbattable', emoji: '🔥',
+    desc: 'Remporter 5 duels consécutifs sans défaite',
+    shadow: false,
+  },
+
   // ── Badges Shadow (cachés jusqu'à déblocage) ────────────────────────
   shadow_ghost: {
     key: 'shadow_ghost',   name: '👻 Le Fantôme',        emoji: '👻',
