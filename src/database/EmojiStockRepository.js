@@ -11,23 +11,24 @@ class EmojiStockRepository {
   /** Enregistre un usage d'emoji et recalcule le prix. */
   async recordUsage(emojiId, emojiName, count = 1) {
     const stock = await EmojiStock.findOneAndUpdate(
-  { emojiId },
-  {
-    $setOnInsert: { price: BASE_PRICE, supply: 1000 },
-    $inc: { usageCount: count, usageTotal: count },
-    $set: { updatedAt: new Date(), name: emojiName },
-  },
-  { upsert: true, new: true }
-);
-
+      { emojiId },
+      {
+        $setOnInsert: { price: BASE_PRICE, supply: 1000 },
+        $inc: { usageCount: count, usageTotal: count },
+        $set: { updatedAt: new Date(), name: emojiName },
+      },
+      { upsert: true, new: true }
+    );
     await this._recalcPrice(stock);
   }
 
   /** Recalcule le prix selon l'usage des 24h : plus utilisé = moins cher (inflation). */
   async _recalcPrice(stock) {
-    // Formule : chaque usage baisse le prix de 2%, chaque heure sans usage le monte de 1%
-    // Variation basée sur usageCount (depuis le dernier reset cron)
-    const usageFactor = Math.max(0.5, 1 - (stock.usageCount * 0.02));
+    // Formule : chaque usage baisse le prix de 2%
+    // On ajoute une petite part de volatilité aléatoire (±1%) pour rendre le marché vivant
+    const volatility = (Math.random() * 0.02) - 0.01; 
+    const usageFactor = Math.max(0.5, 1 - (stock.usageCount * 0.02) + volatility);
+    
     let newPrice = Math.round(stock.price * usageFactor);
     newPrice = Math.max(PRICE_MIN, Math.min(PRICE_MAX, newPrice));
 
@@ -40,9 +41,13 @@ class EmojiStockRepository {
     const stocks = await EmojiStock.find();
     for (const s of stocks) {
       // Sans usage, le prix remonte doucement vers la base
-      const recovery = Math.round(s.price * 1.05);
+      // On ajoute un bonus de "rareté" aléatoire pour les emojis très peu utilisés
+      const rarityBonus = s.usageCount === 0 ? (Math.random() * 0.05) : 0;
+      const recovery = Math.round(s.price * (1.05 + rarityBonus));
+      
       const newPrice = Math.min(PRICE_MAX, Math.max(s.price, recovery));
       const history  = [...(s.history || []), s.price].slice(-24);
+      
       await EmojiStock.updateOne(
         { emojiId: s.emojiId },
         { usageCount: 0, price: newPrice, history }
@@ -60,8 +65,7 @@ class EmojiStockRepository {
     const result = await UserRepository.spendCoins(discordId, cost);
     if (!result.success) return { success: false, error: 'insufficient_coins', balance: result.balance, cost };
 
-    // BUG FIX: $setOnInsert ne met à jour que si le doc est créé (upsert), pas si existant.
-    // On relit la position après upsert pour avoir les vraies valeurs.
+    // Mise à jour de la position
     await EmojiPosition.findOneAndUpdate(
       { discordId, emojiId },
       { $setOnInsert: { shares: 0, avgPrice: 0 } },
@@ -87,7 +91,6 @@ class EmojiStockRepository {
     const gained   = stock.price * shares;
     const newShares = pos.shares - shares;
     if (newShares <= 0) {
-      // BUG FIX: supprimer la position quand toutes les parts sont vendues
       await EmojiPosition.deleteOne({ discordId, emojiId });
     } else {
       await EmojiPosition.updateOne({ discordId, emojiId }, { shares: newShares });
