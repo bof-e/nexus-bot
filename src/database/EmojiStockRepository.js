@@ -11,14 +11,15 @@ class EmojiStockRepository {
   /** Enregistre un usage d'emoji et recalcule le prix. */
   async recordUsage(emojiId, emojiName, count = 1) {
     const stock = await EmojiStock.findOneAndUpdate(
-      { emojiId },
-      {
-        $setOnInsert: { name: emojiName, price: BASE_PRICE, supply: 1000 },
-        $inc: { usageCount: count, usageTotal: count },
-        $set: { updatedAt: new Date(), name: emojiName },
-      },
-      { upsert: true, new: true }
-    );
+  { emojiId },
+  {
+    $setOnInsert: { price: BASE_PRICE, supply: 1000 },
+    $inc: { usageCount: count, usageTotal: count },
+    $set: { updatedAt: new Date(), name: emojiName },
+  },
+  { upsert: true, new: true }
+);
+
     await this._recalcPrice(stock);
   }
 
