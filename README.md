@@ -1,180 +1,209 @@
 <div align="center">
 
-# ⚡ Nexus
+# ⚡ Nexus Bot
 
-**Le bot Discord qui transforme ton serveur gaming en véritable communauté.**
+**Le bot Discord gaming communautaire tout-en-un.**
 
 [![Discord.js](https://img.shields.io/badge/discord.js-v14-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.js.org)
 [![Node.js](https://img.shields.io/badge/node.js-18%2B-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![MongoDB](https://img.shields.io/badge/mongodb-atlas-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://mongodb.com)
-[![Gemini](https://img.shields.io/badge/gemini-2.5--flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
+[![Gemini AI](https://img.shields.io/badge/gemini-2.5--flash-4285F4?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
+[![Version](https://img.shields.io/badge/version-2.2.0-brightgreen?style=flat-square)]()
+[![Commandes](https://img.shields.io/badge/commandes-31-blue?style=flat-square)]()
+
+[**Démo**](#) · [**Documentation**](./COMMANDES.md) · [**Installation**](#installation)
 
 </div>
 
 ---
 
-## 🎯 C'est quoi Nexus ?
+## 🎯 Qu'est-ce que Nexus ?
 
-Nexus est un bot Discord complet pensé pour les serveurs gaming. Il récompense l'activité, crée de la compétition saine, anime les conversations et s'occupe de l'organisation à ta place — le tout sans configuration complexe.
+Nexus est un bot Discord **clé en main** conçu pour les serveurs gaming. Il transforme une communauté passive en un écosystème vivant : chaque message, chaque partie, chaque interaction crée de la valeur pour les membres.
 
-Tu joues ? Il le sait. Tu montes de niveau ? Tout le monde le voit. Tu cherches des coéquipiers ? Une commande suffit. Et si tu veux juste parler — il répond, avec du caractère.
+**31 commandes slash. 17 modèles de données. Une IA intégrée. Zéro configuration complexe.**
 
 ---
 
-## 🧩 Ce que tu peux faire avec Nexus
+## ✨ Fonctionnalités
 
 ### 🏆 Progression & Gamification
-Chaque action sur le serveur rapporte de l'XP et des 🪙 coins. Les membres montent en niveau, débloquent des rôles automatiquement et accumulent des badges au fil du temps.
+Système XP complet avec niveaux, rôles automatiques et badges collectionnables.
 
-| Commande | Ce que ça fait |
+| Commande | Description |
 |---|---|
-| `/profil [@membre]` | Profil complet : XP, niveau, coins, réputation, badges, jeux |
-| `/top` | Classement XP du serveur |
-| `/daily` | Bonus quotidien avec streak cumulatif (+XP et coins) |
-| `/badges` | Catalogue des 12 badges disponibles |
-| `/missions` | Missions du jour et de la semaine avec récompenses |
-| `/saison info / top / historique` | Classement saisonnier — chaque saison repart de zéro |
+| `/profil [@membre]` | Profil enrichi : XP, niveau (barre visuelle), coins, réputation, rang de saison, clan, AniList, badges, top 3 jeux |
+| `/top [limite]` | Classement XP du serveur |
+| `/niveau` | Roadmap des prochains niveaux avec XP requis et milestones |
+| `/daily` | Bonus quotidien XP + coins avec streak cumulatif (récompense doublée après 7 jours) |
+| `/missions` | 4 missions quotidiennes + 4 hebdomadaires avec barres de progression |
+| `/badges [@membre]` | Catalogue des badges + badges secrets (shadow) |
+| `/saison info/top/historique/terminer` | Classement saisonnier — reset XP, podium archivé |
 
-> Les niveaux 5, 15 et 30 attribuent automatiquement des rôles configurables.
+> **Milestones automatiques** : niveau 5 → Rookie, niveau 15 → Vétéran, niveau 30 → Légende
 
 ---
 
-### 🪙 Économie & Boutique
-Les coins s'accumulent en jouant, en chattant, en complétant des missions. Ils se dépensent dans la boutique.
+### 🪙 Économie virtuelle
+Système de coins cohérent : chaque action en rapporte, chaque article a un impact réel.
 
-| Commande | Ce que ça fait |
+| Commande | Description |
 |---|---|
-| `/boutique voir` | Voir les articles et ton solde |
-| `/boutique acheter` | Boost XP ×2 ou ×3, rôle VIP, reset daily, +réputation |
-| `/rep @membre` | Donner un point de réputation (1 fois / 24h par cible) |
+| `/boutique voir/acheter` | Boost XP ×2/×3, rôle VIP, +réputation, reset daily |
+| `/inventaire` | Achats passés + boost XP actif avec temps restant |
+| `/bourse marche/acheter/vendre/cours/portefeuille` | **Bourse spéculative** sur les emojis du serveur — prix fluctuant selon l'utilisation |
+| `/rep @membre` | +1 réputation communautaire (1 fois / 24h par cible) |
+| `/coinflip [mise]` | Pile ou face avec pari optionnel en coins |
 
 ---
 
 ### 🎮 Mini-jeux & Social
-| Commande | Ce que ça fait |
+| Commande | Description |
 |---|---|
-| `/duel @membre` | Pierre-feuille-ciseaux — le vainqueur gagne de l'XP |
-| `/quiz` | Question gaming aléatoire, 30 secondes pour répondre |
-| `/sond <question>` | Sondage jusqu'à 8 options, les votants gagnent de l'XP |
-| `/lfg creer / liste` | Annonce Looking For Group avec bouton Rejoindre |
-| `/suggestion ajouter / liste` | Soumettre une idée — la communauté vote 👍👎 |
+| `/duel @adversaire` | Pierre-feuille-ciseaux — XP au gagnant, win streak (5 victoires = badge 🔥) |
+| `/quiz` | Question gaming aléatoire (30s) |
+| `/coinflip [mise]` | Pile ou face avec animation et pari |
+| `/sond <question> <options>` | Sondage jusqu'à 8 options, clôture automatique |
+| `/tribunal @adversaire` | L'IA tranche un désaccord — verdict + transfert 50 coins |
+| `/suggestion ajouter/liste/traiter` | Boîte à idées communautaire avec votes 👍👎 |
 
 ---
 
-### 🏴 Clans
-Forme des équipes, accumule de l'XP collectif et grimpe dans le classement des clans.
-
-| Commande | Ce que ça fait |
+### 🏴 Clans & Mercenariat
+| Commande | Description |
 |---|---|
-| `/clan creer` | Créer un clan avec nom + tag |
-| `/clan rejoindre [tag]` | Rejoindre un clan existant |
-| `/clan info / top` | Infos d'un clan ou classement général |
-| `/clan quitter / dissoudre` | Quitter ou fermer son clan |
-
-> Chaque XP gagné par un membre contribue au total XP de son clan.
+| `/clan creer/rejoindre/quitter/info/top/dissoudre` | Équipes permanentes — XP contribue au total clan |
+| `/mercenaire contrats/rejoindre/poster/mes_contrats` | Contrats payants entre clans — XP contre coins |
 
 ---
 
-### 🤖 Intelligence Artificielle
-Nexus utilise Gemini pour répondre intelligemment quand on lui parle.
-
-- **Mentionne-le** n'importe où : `@Nexus c'est quoi le meilleur build Warframe ?`
-- **Réponds à un de ses messages** pour continuer la conversation
-- **Configure un salon dédié** où il répond à tous les messages automatiquement
-- Il peut **chercher sur le web** pour des infos récentes (prix, sorties, patch notes…)
-- Il garde le **contexte de la conversation** en mémoire pendant 2h
-
-La commande `/recherche <requête>` donne un résumé sourcé directement dans un embed.
+### 🔍 LFG — Looking For Group
+| Commande | Description |
+|---|---|
+| `/lfg creer/liste` | Annonces avec bouton Rejoindre, expiration automatique |
 
 ---
 
-### 📬 Automatique — sans rien faire
-Nexus tourne en arrière-plan et gère tout seul :
+### 🤖 IA (Gemini 2.5 Flash)
+Personnalité de rival gaming — sarcastique, compétitif, toujours en personnage.
 
-| Ce qui se passe | Quand |
-|---|---|
-| 📊 Récap XP du serveur | Toutes les 6h |
-| 🎮 Notification quand quelqu'un joue | En temps réel |
-| 📰 Mises à jour Warframe / Genshin / Wuthering Waves | Dès qu'un patch sort |
-| ⏰ Rappels programmés | Selon ta configuration |
-| 🗳️ Clôture automatique des sondages | À l'expiration |
-| 🔴 Fermeture des LFG expirés | Toutes les 10 minutes |
-| 🎤 Création de salons vocaux temporaires | Quand quelqu'un rejoint le salon Hub |
-| 👋 Accueil des nouveaux membres | Message serveur + DM |
-
-Tout peut être activé / désactivé à la volée avec `/autopost`.
-
----
-
-### 🛡️ Modération progressive
-| Commande | Ce que ça fait |
-|---|---|
-| `/warn add @membre [raison]` | Avertissement — mute auto à 3 puis 5 warns |
-| `/warn list @membre` | Historique des avertissements |
-| `/warn clear @membre` | Effacer les warns d'un membre |
+- **Mention** `@Nexus` n'importe où — répond en moins de 15s
+- **Répondre à un de ses messages** — continue la conversation (mémoire 2h)
+- **Salon IA dédié** — répond à tous les messages (configurable via `/ai salon`)
+- **Recherche web** — cherche des infos récentes si nécessaire
+- **Accès à la DB** — peut afficher ton profil, ton classement, tes missions en direct
+- `/recherche <requête>` — recherche web + résumé sourcé
 
 ---
 
 ### 🎌 AniList
-| Commande | Ce que ça fait |
+| Commande | Description |
 |---|---|
-| `/register <pseudo_anilist>` | Lier son compte AniList à Discord |
-| `/aniboard` | Classement anime du serveur (temps de visionnage) |
+| `/register <pseudo>` | Lier son compte AniList à Discord |
+| `/aniboard` | Classement anime du serveur par temps de visionnage |
 
 ---
 
-## ⚙️ Installation
+### 🛡️ Modération progressive
+| Commande | Description |
+|---|---|
+| `/warn add/list/clear` | Avertissements — mute auto 1h (3 warns) et 24h (5 warns) |
+
+---
+
+### ⚙️ Administration
+| Commande | Description |
+|---|---|
+| `/autopost status/recap/rss/notif/rappel` | Activer/désactiver les messages automatiques |
+| `/ai salon/reset/statut` | Configurer l'IA |
+| `/event start/stop` | Événement XP ×2 |
+| `/rappel on/off/set` | Rappels planifiés |
+
+---
+
+### 🔊 Vocal (automatique)
+- **Salons temporaires** : rejoindre le salon Hub crée un salon privé, supprimé quand vide
+- **Capture de territoire** : le clan majoritaire contrôle le salon (+2 XP/min), renommage automatique
+
+---
+
+### 📬 Messages automatiques
+| Déclencheur | Contenu |
+|---|---|
+| Toutes les 6h | Récap XP + classement |
+| Toutes les heures | Mises à jour patch notes (Warframe, Genshin, Wuthering Waves) |
+| Toutes les 10min | Fermeture des LFG expirés |
+| Chaque lundi 3h30 | Nettoyage DB missions |
+| Minuit | Reset bourse aux emojis |
+| En direct | Notifications gaming, level-up, badges |
+
+---
+
+## 🎭 Badges (13 visibles + 5 secrets)
+
+| Badge | Condition |
+|---|---|
+| 🥉 Débutant | Niveau 5 |
+| 🥈 Confirmé | Niveau 15 |
+| 🥇 Expert | Niveau 30 |
+| ⚔️ Combattant | Premier duel gagné |
+| 🔥 Imbattable | 5 victoires consécutives en duel |
+| 🎓 Érudit | Quiz complété |
+| 🗳️ Votant | Participer à un sondage |
+| 🎮 Gamer | Première session de jeu |
+| + 5 badges secrets | Conditions cachées à découvrir |
+
+---
+
+## 🚀 Installation
 
 ### Prérequis
 - Node.js 18+
-- Un compte [MongoDB Atlas](https://mongodb.com) (gratuit)
-- Un bot Discord avec les intents : `Guilds`, `GuildPresences`, `GuildMembers`, `GuildMessages`, `MessageContent`, `GuildMessageReactions`
-- Une clé [Google AI Studio](https://aistudio.google.com) (gratuit) pour l'IA
+- MongoDB Atlas (gratuit)
+- Bot Discord — intents requis : `Guilds`, `GuildPresences`, `GuildMembers`, `GuildMessages`, `MessageContent`, `GuildMessageReactions`
+- Clé [Google AI Studio](https://aistudio.google.com) (gratuit)
 
 ### 1. Cloner & installer
 ```bash
-git clone https://github.com/ton-repo/nexus-bot.git
+git clone https://github.com/bof-e/nexus-bot.git
 cd nexus-bot
 npm install
 ```
 
-### 2. Configurer l'environnement
+### 2. Configurer
 ```bash
 cp .env.example .env
+# Remplir les variables obligatoires
 ```
 
-Remplis au minimum :
 ```env
-TOKEN=           # Token du bot Discord
-CLIENT_ID=       # ID de l'application Discord
-MONGODB_URI=     # URI MongoDB Atlas
-GEMINI_API_KEY=  # Clé Google AI Studio
+TOKEN=              # Token bot Discord
+CLIENT_ID=          # ID application Discord
+MONGODB_URI=        # URI MongoDB Atlas
+GEMINI_API_KEY=     # Clé Google AI Studio (gratuit sur aistudio.google.com)
+
+# Optionnel
+GOOGLE_CSE_KEY=     # Meilleure recherche web
+SERP_API_KEY=       # Alternative recherche
+AI_CHANNEL_ID=      # Salon IA dédié
+VOICE_HUB_CHANNEL_ID= # Salon vocal Hub
 ```
 
-### 3. Déployer les commandes slash
+### 3. Déployer et lancer
 ```bash
-npm run deploy
+npm run deploy   # Enregistre les commandes slash
+npm start        # Lancer le bot
 ```
 
-### 4. Lancer
-```bash
-npm start          # Production
-npm run dev        # Développement (hot-reload)
-```
+### Déploiement sur Render
+1. Connecter le repo GitHub
+2. **Build** : `npm install && npm run deploy`
+3. **Start** : `node src/index.js`
+4. Ajouter les variables d'env dans le dashboard
 
 ---
 
-## 🔧 Déploiement sur Render
-
-1. Connecte ton repo GitHub
-2. **Build command** : `npm install && npm run deploy`
-3. **Start command** : `node src/index.js`
-4. Ajoute les variables d'environnement dans le dashboard Render
-5. C'est tout — Nexus tourne 24h/24
-
----
-
-## 📁 Structure du projet
+## 📁 Architecture
 
 ```
 nexus-bot/
@@ -182,15 +211,16 @@ nexus-bot/
 │   ├── commands/
 │   │   ├── admin/        (ai, autopost, event, notif, rappel, warn)
 │   │   ├── anime/        (aniboard, register)
-│   │   ├── gamification/ (badges, boutique, daily, missions, profil, saison, top)
+│   │   ├── economy/      (bourse)
+│   │   ├── gamification/ (badges, boutique, daily, inventaire, missions, niveau, profil, saison, top)
 │   │   ├── misc/         (aide, recherche, stats)
 │   │   ├── polls/        (sond)
-│   │   └── social/       (clan, duel, lfg, quiz, rep, suggestion)
+│   │   └── social/       (clan, coinflip, duel, lfg, mercenaire, quiz, rep, suggestion, tribunal)
 │   ├── database/
 │   │   ├── models/       (17 modèles Mongoose)
 │   │   └── *Repository   (14 repositories)
-│   ├── events/           (6 events Discord)
-│   ├── services/         (AI, Cron, RSS, WebSearch, XP, Cooldown)
+│   ├── events/           (clientReady, guildMemberAdd, interactionCreate, messageCreate, presenceUpdate, voiceStateUpdate)
+│   ├── services/         (AIService, CooldownManager, CronService, NexusContextService, RSSService, ShadowBadgeService, WebSearchService, XPService)
 │   └── utils/            (embedBuilder, levelCalc, logger, randomResponses)
 ├── config/index.js
 ├── .env.example
@@ -199,8 +229,10 @@ nexus-bot/
 
 ---
 
-<div align="center">
+## 🛒 Licence & Usage Commercial
 
-*Nexus — Discord.js v14 · MongoDB · Gemini AI · Node.js 18+*
+Ce bot est un projet **privé**. Pour toute demande d'installation sur un serveur tiers, de licence ou de revente, contacte le développeur directement.
 
-</div>
+---
+
+*Nexus v2.2.0 — Discord.js v14 · MongoDB Atlas · Gemini 2.5 Flash · Node.js 18+*
