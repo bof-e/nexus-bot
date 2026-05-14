@@ -67,10 +67,12 @@ module.exports = {
 
   // Cooldowns (secondes)
   cooldowns: {
-    daily:   23 * 3600,
-    duel:    300,
+    daily:   30,
+    duel:    30,
     quiz:    30,
-    poll:    0,
-    stats:   10,
+    poll:    30,
+    stats:   30,
+    missions: 30,
+    bourse: 30,
   },
 };
