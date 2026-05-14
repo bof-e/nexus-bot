@@ -140,13 +140,17 @@ class XPService {
     }
 
     // Missions
-    const missionResults = await MissionRepository.progress(discordId, 'daily');
-    for (const r of missionResults.filter(r => r.completed)) {
-      await UserRepository.addXP(discordId, r.mission.xp);
-      await UserRepository.addCoins(discordId, r.mission.coins);
-      newBadges.push({ emoji: '🎯', name: r.mission.name, desc: r.mission.desc });
+    try {
+      const missionResults = await MissionRepository.progress(discordId, 'daily');
+      for (const r of missionResults.filter(r => r.completed)) {
+        await UserRepository.addXP(discordId, r.mission.xp);
+        await UserRepository.addCoins(discordId, r.mission.coins);
+        newBadges.push({ emoji: '🎯', name: r.mission.name, desc: r.mission.desc });
+      }
+      if (newStreak >= 7) await MissionRepository.progress(discordId, 'streak_7');
+    } catch (err) {
+      logger.error(`[XPService] Erreur progression mission daily pour ${discordId} : ${err.message}`);
     }
-    if (newStreak >= 7) await MissionRepository.progress(discordId, 'streak_7');
 
     return { success: true, xp: xpResult.gained, streak: newStreak, newBadges, events: xpResult.events };
   }
