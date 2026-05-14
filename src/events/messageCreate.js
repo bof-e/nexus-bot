@@ -45,7 +45,7 @@ module.exports = {
     // ── Tracking emojis pour la Bourse ───────────────────────────────
     const emojiMatches = message.content.matchAll(/<a?:([\w]+):(\d+)>/g);
     for (const m of emojiMatches) {
-      EmojiStockRepository.recordUsage(m[2], m[1]).catch(err => console.error(`[Bourse Error] ${err.message}`));
+      EmojiStockRepository.recordUsage(m[2], m[1]).catch(err => logger.error(`[Bourse] Erreur recordUsage : ${err.message}`));
 
     }
 
